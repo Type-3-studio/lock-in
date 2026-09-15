@@ -65,6 +65,14 @@ verified (built + tested).
 - [x] Installable manifest, icons, offline verification
       (`vite.config.ts` + `public/icons`; icons now precached. Verified: SW controls the app and a
       reload while offline renders the shell from cache)
+- [x] Full favicon set + apple-touch-icon + OG/Twitter share image
+      (`pnpm icons` now also emits `favicon.ico`, `favicon-16/32/48.png`, `apple-touch-icon.png`;
+      `public/og-image.png` 1200x630)
+- [x] PWA install screenshots + shortcuts (deep link via `?tab=`)
+      (`public/screenshots/*`; manifest `screenshots` + `shortcuts`, wired in `src/lock-in-app.ts`)
+- [x] SEO/AEO assets: `llms.txt`, `robots.txt`, `sitemap.xml`, `humans.txt`, `privacy.html`, `terms.html`
+- [x] Deploy source pushed to `github.com/Type-3-studio/lock-in`
+- [ ] Cloudflare Pages project + custom domain `lockin.t3apps.com` (dashboard wiring)
 - [ ] Capacitor wrap for iOS/Android — later
 
 ## Steals from v1 (backlog)
