@@ -1,0 +1,14 @@
+/* TEAM */
+Studio: Type-3 Studio
+App: Lock In
+Site: https://lockin.t3apps.com
+Studio site: https://type-3studio.com
+Location: Global
+
+/* THANKS */
+Built with curiosity, care, and clean code.
+
+/* TECHNOLOGY COLOPHON */
+Languages: TypeScript, HTML, CSS
+Frameworks: Lit, Ionic, Vite
+Storage: Dexie.js on IndexedDB

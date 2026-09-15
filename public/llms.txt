@@ -1,0 +1,39 @@
+# Lock In
+
+> Commit to a goal, lock its deadline, and ship against it. Local-first weekly planning that works fully offline.
+
+## About
+
+Lock In is a free, offline-first progressive web app built around a single idea: once you
+commit to a goal, its deadline is locked. Everything else — weekly tasks, lists, history —
+supports shipping against that commitment. No account, no tracking, no ads, and no backend:
+your plan lives entirely on your device.
+
+## Key ideas
+
+- **Locked deadlines** — a goal starts as a draft you can edit freely; locking it sets a
+  deadline that cannot be changed and a status you cannot undo. Mistakes become a new goal.
+- **Weekly plan** — a rolling week and month grid where each day holds tasks.
+- **Recurring tasks** — a task is a template; its occurrences are generated deterministically
+  and clipped at the goal's deadline.
+- **Lists and notes** — flat checklists you can promote into tasks or goals.
+- **Append-only history** — every lock, completion, and task outcome is logged with a frozen
+  snapshot, and cannot be edited or deleted.
+
+## Privacy
+
+- No accounts, analytics, or trackers
+- All data stays on your device (IndexedDB via Dexie, plus a little localStorage for theme)
+- No backend and no cloud sync — export JSON is the backup mechanism
+- Works fully offline once installed
+
+## Links
+
+- [Lock In](https://lockin.t3apps.com) — the app
+- [Privacy Policy](https://lockin.t3apps.com/privacy.html)
+- [Terms of Service](https://lockin.t3apps.com/terms.html)
+- [Type-3 Studio](https://type-3studio.com) — made by
+
+## Contact
+
+Email: mail@type-3studio.com

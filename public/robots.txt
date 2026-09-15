@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lockin.t3apps.com/sitemap.xml
