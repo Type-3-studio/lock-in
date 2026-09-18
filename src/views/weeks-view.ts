@@ -1,7 +1,11 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { PALETTE_CSS } from '../components/palette-css.js';
 import type { Goal, Occurrence, Recurrence, Settings, Task, TaskStatus } from '../db/types.js';
 import {
+  ALL_TIME_START,
+  ALL_TIME_END,
+  DEFAULT_SETTINGS,
   createTask,
   deleteOccurrence,
   deleteOccurrencesForTask,
@@ -17,6 +21,7 @@ import {
 import { logTaskMarked } from '../lib/history.js';
 import { todayISO } from '../lib/clock.js';
 import { confirmAction } from '../lib/confirm.js';
+import { setupTabReselect } from '../lib/tab-reselect.js';
 import {
   addDays,
   addMonths,
@@ -76,7 +81,7 @@ const WEEKS_PER_PAGE = 8;
 
 @customElement('weeks-view')
 export class WeeksView extends LitElement {
-  static styles = css`
+  static styles = [PALETTE_CSS, css`
     :host {
       display: flex;
       flex-direction: column;
@@ -354,12 +359,13 @@ export class WeeksView extends LitElement {
       font-size: 0.8rem;
       color: var(--ion-color-medium);
     }
-  `;
+  `,
+  ];
 
   @state() private goals: Goal[] = [];
   @state() private tasks: Task[] = [];
   @state() private occurrences: Occurrence[] = [];
-  @state() private settings: Settings = { id: 'default', wakeTime: '07:00', bedTime: '23:00', showDeadlineLine: true };
+  @state() private settings: Settings = { ...DEFAULT_SETTINGS };
   @state() private mode: Mode = 'week';
   @state() private weekAnchor: ISODate = startOfWeek(todayISO());
   @state() private weekCount = WEEKS_PER_PAGE;
@@ -369,6 +375,7 @@ export class WeeksView extends LitElement {
   @state() private busy = false;
 
   private subscriptions: Array<{ unsubscribe(): void }> = [];
+  private tabReselectCleanup: (() => void) | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -379,21 +386,22 @@ export class WeeksView extends LitElement {
       liveTasks().subscribe((tasks) => {
         this.tasks = tasks;
       }),
-      liveOccurrencesInRange('0000-01-01', '9999-12-31').subscribe((occurrences) => {
+      liveOccurrencesInRange(ALL_TIME_START, ALL_TIME_END).subscribe((occurrences) => {
         this.occurrences = occurrences;
       }),
       liveSettings().subscribe((settings) => {
         this.settings = settings;
       }),
     ];
-    this.addEventListener('tab-reselect', this.onTabReselect);
+    this.tabReselectCleanup = setupTabReselect(this, this.onTabReselect);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());
     this.subscriptions = [];
-    this.removeEventListener('tab-reselect', this.onTabReselect);
+    this.tabReselectCleanup?.();
+    this.tabReselectCleanup = null;
   }
 
   private onTabReselect = (): void => {
@@ -685,7 +693,7 @@ export class WeeksView extends LitElement {
     return html`
       <weeks-table
         .weeks=${this.weekRows}
-        @day-select=${(event: CustomEvent<ISODate>) => this.openDay(event)}
+        @day-open=${(event: CustomEvent<ISODate>) => this.openDay(event)}
       ></weeks-table>
       <div class="load-more">
         <ion-button fill="clear" @click=${this.loadMore}>Load more weeks</ion-button>
@@ -718,7 +726,20 @@ export class WeeksView extends LitElement {
     const totalDur = day.tasks.reduce((s, t) => s + t.task.durationMinutes, 0);
     return html`
       <div class="agenda-day ${isToday ? 'today' : ''}">
-        <div class="agenda-day-head" @click=${() => this.openDayDate(day.date)}>
+        <div
+          class="agenda-day-head"
+          role="button"
+          tabindex="0"
+          aria-label=${`Open ${longLabel(day.date)}`}
+          @click=${() => this.openDayDate(day.date)}
+          @keydown=${(event: KeyboardEvent) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              this.openDayDate(day.date);
+            }
+          }}
+        >
           <span>${longLabel(day.date)}</span>
           <span class="free-badge">${formatDuration(totalDur)} planned</span>
         </div>

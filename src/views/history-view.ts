@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { PALETTE_CSS } from '../components/palette-css.js';
 import type { HistoryEntry, HistoryType, Settings } from '../db/types.js';
 import {
   exportData,
@@ -36,7 +37,6 @@ const TYPE_LABEL: Record<HistoryType, string> = {
   goal_abandoned: 'Abandoned',
   task_done: 'Task done',
   task_missed: 'Task missed',
-  week_note_added: 'Note',
 };
 
 const TYPE_COLOR: Record<HistoryType, string> = {
@@ -46,7 +46,6 @@ const TYPE_COLOR: Record<HistoryType, string> = {
   goal_abandoned: 'warning',
   task_done: 'success',
   task_missed: 'danger',
-  week_note_added: 'medium',
 };
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -61,7 +60,7 @@ function text(value: unknown): string {
 
 @customElement('history-view')
 export class HistoryView extends LitElement {
-  static styles = css`
+  static styles = [PALETTE_CSS, css`
     :host {
       display: flex;
       flex-direction: column;
@@ -180,7 +179,8 @@ export class HistoryView extends LitElement {
       background: var(--ion-background-color);
       color: var(--ion-text-color);
     }
-  `;
+  `,
+  ];
 
   @state() private entries: HistoryEntry[] = [];
   @state() private backups: Backup[] = [];
@@ -232,8 +232,6 @@ export class HistoryView extends LitElement {
           title: `${TYPE_LABEL[entry.type]}: ${title}`,
           detail: text(snapshot?.date),
         };
-      case 'week_note_added':
-        return { title: `Note “${title}”`, detail: '' };
       default:
         return { title, detail: '' };
     }

@@ -53,9 +53,13 @@ export class LockInApp extends LitElement {
     if (clickedTab === undefined) return;
     // If the user tapped the already-active tab, pop that view to root
     if (clickedTab === this.activeTab) {
+      // Views listen on themselves, but DOM events only travel upward — dispatching
+      // on the <ion-tab> parent would never reach them. Target the view element.
       this.shadowRoot
         ?.querySelector(`[tab="${clickedTab}"]`)
-        ?.dispatchEvent(new CustomEvent('tab-reselect', { bubbles: true, composed: true }));
+        ?.firstElementChild?.dispatchEvent(
+          new CustomEvent('tab-reselect', { bubbles: true, composed: true }),
+        );
     }
   };
 

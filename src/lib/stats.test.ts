@@ -27,7 +27,6 @@ describe('historyStats', () => {
       entry('task_done', {}),
       entry('task_done', {}),
       entry('task_missed', {}),
-      entry('week_note_added', {}),
     ]);
     expect(stats).toMatchObject({
       locked: 1,

@@ -1,7 +1,5 @@
 export type ISODate = string;
 
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
 interface Civil {
   year: number;
   month: number;
@@ -19,13 +17,6 @@ function isLeapYear(year: number): boolean {
 export function daysInMonth(year: number, month: number): number {
   const lengths = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   return lengths[month - 1] ?? 0;
-}
-
-export function isISODate(value: string): value is ISODate {
-  if (!ISO_DATE_RE.test(value)) return false;
-  const { year, month, day } = splitISODate(value);
-  if (month < 1 || month > 12) return false;
-  return day >= 1 && day <= daysInMonth(year, month);
 }
 
 function splitISODate(date: ISODate): Civil {
@@ -83,13 +74,6 @@ export function compareDates(a: ISODate, b: ISODate): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-export function clampDate(date: ISODate, min: ISODate | null, max: ISODate | null): ISODate {
-  let result = date;
-  if (min !== null && compareDates(result, min) < 0) result = min;
-  if (max !== null && compareDates(result, max) > 0) result = max;
-  return result;
-}
-
 export function dayOfWeek(date: ISODate): number {
   const mod = ((toDayNumber(date) + 3) % 7 + 7) % 7;
   return mod + 1;
@@ -135,11 +119,6 @@ export function isoWeek(date: ISODate): ISOWeek {
   const week1Monday = jan4 - (dayOfWeek(fromDayNumber(jan4)) - 1);
   const currentMonday = thursday - 3;
   return { year: weekYear, week: Math.floor((currentMonday - week1Monday) / 7) + 1 };
-}
-
-export function weekKey(date: ISODate): string {
-  const { year, week } = isoWeek(date);
-  return `${pad(year, 4)}-W${pad(week, 2)}`;
 }
 
 export function eachDate(start: ISODate, end: ISODate): ISODate[] {

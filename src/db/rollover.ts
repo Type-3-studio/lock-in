@@ -22,15 +22,14 @@ export async function runMissedRollover(): Promise<number> {
   const changes = planMissedRollover(tasks, occurrences, goals, today);
   if (changes.length === 0) return 0;
 
-  await db.transaction('rw', db.occurrences, async () => {
+  // Atomic: occurrence state and its audit-log entry land together, so a crash
+  // between the two can never leave a silent gap in the (append-only) history.
+  await db.transaction('rw', [db.occurrences, db.history], async () => {
     for (const change of changes) {
       await setOccurrenceStatus(change.task.id, change.date, 'missed');
+      await logTaskMarked(change.task, change.date, 'missed');
     }
   });
-
-  for (const change of changes) {
-    await logTaskMarked(change.task, change.date, 'missed');
-  }
 
   return changes.length;
 }

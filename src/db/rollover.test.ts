@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from './db.js';
 import { createTask, listHistory, listOccurrencesForTask } from './store.js';
 import { runMissedRollover } from './rollover.js';
@@ -40,5 +40,23 @@ describe('runMissedRollover', () => {
   it('does nothing when there is nothing past due', async () => {
     await createTask({ title: 'future', anchorDate: todayISO(), recurrence: 'none' });
     expect(await runMissedRollover()).toBe(0);
+  });
+
+  it('rolls back occurrence state if history logging fails', async () => {
+    const task = await createTask({
+      title: 'stretch',
+      anchorDate: addDays(todayISO(), -2),
+      recurrence: 'daily',
+    });
+
+    const addSpy = vi
+      .spyOn(db.history, 'add')
+      .mockRejectedValueOnce(new Error('history write failed'));
+
+    await expect(runMissedRollover()).rejects.toThrow('history write failed');
+    addSpy.mockRestore();
+
+    expect(await listOccurrencesForTask(task.id)).toHaveLength(0);
+    expect(await listHistory()).toHaveLength(0);
   });
 });

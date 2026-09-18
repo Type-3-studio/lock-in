@@ -245,7 +245,7 @@ export class WeeksTable extends LitElement {
         <button
           class=${classes}
           aria-label=${`Manage tasks for ${day.date}`}
-          @click=${() => this.emit('day-select', day.date)}
+          @click=${() => this.emit('day-open', day.date)}
         >
           <span class="dnum">${day.dayNumber}</span>
           ${visible.length > 0

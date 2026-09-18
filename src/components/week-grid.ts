@@ -285,6 +285,9 @@ export class WeekGrid extends LitElement {
         tabindex="0"
         @click=${select}
         @keydown=${(event: KeyboardEvent) => {
+          // Only act when the row itself has focus — a keydown from the nested
+          // check button must keep its native Enter/Space activation.
+          if (event.target !== event.currentTarget) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             select();

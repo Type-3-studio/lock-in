@@ -88,10 +88,6 @@ export function liveGoals(): Observable<Goal[]> {
   return liveQuery(() => db.goals.orderBy('createdAt').reverse().toArray());
 }
 
-export function liveGoal(id: string): Observable<Goal | undefined> {
-  return liveQuery(() => db.goals.get(id));
-}
-
 /* ---------------------------------- Tasks --------------------------------- */
 
 export interface TaskDraft {
@@ -107,8 +103,6 @@ export interface TaskDraft {
 
 export async function createTask(draft: TaskDraft): Promise<Task> {
   const goalId = draft.goalId ?? null;
-  const siblings = await db.tasks.toArray();
-  const order = siblings.filter((task) => task.goalId === goalId).length;
   const task: Task = {
     id: newId(),
     title: draft.title,
@@ -118,16 +112,21 @@ export async function createTask(draft: TaskDraft): Promise<Task> {
     recurrenceDays: draft.recurrenceDays ?? null,
     recurrenceEnd: draft.recurrenceEnd ?? null,
     sourceNoteId: draft.sourceNoteId ?? null,
-    order,
+    order: 0,
     durationMinutes: draft.durationMinutes ?? 30,
     createdAt: now(),
   };
-  await db.tasks.add(task);
+  // Read-modify-write inside a transaction so concurrent creates serialize and
+  // each task gets a unique `order` within its goal group.
+  await db.transaction('rw', db.tasks, async () => {
+    const order =
+      goalId === null
+        ? (await db.tasks.toArray()).filter((row) => row.goalId === null).length
+        : await db.tasks.where('goalId').equals(goalId).count();
+    task.order = order;
+    await db.tasks.add(task);
+  });
   return task;
-}
-
-export function getTask(id: string): Promise<Task | undefined> {
-  return db.tasks.get(id);
 }
 
 function byOrderThenCreated(a: Task, b: Task): number {
@@ -195,13 +194,13 @@ export function deleteOccurrencesForTask(taskId: string): Promise<number> {
   return db.occurrences.where('taskId').equals(taskId).delete();
 }
 
-export function liveOccurrencesForTask(taskId: string): Observable<Occurrence[]> {
-  return liveQuery(() => listOccurrencesForTask(taskId));
-}
-
 export function liveOccurrencesInRange(start: string, end: string): Observable<Occurrence[]> {
   return liveQuery(() => listOccurrencesInRange(start, end));
 }
+
+/** Full date range used by views that subscribe to every occurrence at once. */
+export const ALL_TIME_START = '0000-01-01';
+export const ALL_TIME_END = '9999-12-31';
 
 /* ---------------------------------- Notes --------------------------------- */
 
@@ -221,10 +220,6 @@ export async function createNote(draft: NoteDraft): Promise<Note> {
   };
   await db.notes.add(note);
   return note;
-}
-
-export function getNote(id: string): Promise<Note | undefined> {
-  return db.notes.get(id);
 }
 
 export function listNotes(): Promise<Note[]> {
@@ -310,7 +305,7 @@ export async function removeNoteItem(noteId: string, itemId: string): Promise<vo
 
 /* -------------------------------- Settings -------------------------------- */
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   id: 'default',
   wakeTime: '07:00',
   bedTime: '23:00',
@@ -392,13 +387,15 @@ export async function importData(dto: ExportDto): Promise<void> {
       await db.occurrences.clear();
       await db.notes.clear();
       await db.history.clear();
-      await db.settings.clear();
       await db.goals.bulkAdd(dto.goals);
       await db.tasks.bulkAdd(dto.tasks);
       await db.occurrences.bulkAdd(dto.occurrences);
       await db.notes.bulkAdd(dto.notes);
       await db.history.bulkAdd(dto.history);
+      // Only touch settings when the DTO carries them — a v1 export has none,
+      // and silently wiping the user's schedule prefs would be destructive.
       if (dto.settings !== undefined) {
+        await db.settings.clear();
         await db.settings.put(dto.settings);
       }
     },

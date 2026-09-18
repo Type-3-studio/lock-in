@@ -37,22 +37,70 @@ db.version(2).stores({
   backups: 'id, createdAt',
 });
 
-db.version(3).stores({
-  goals: 'id, status, deadline, createdAt',
-  tasks: 'id, goalId, anchorDate, recurrence, createdAt',
-  occurrences: 'id, taskId, date, [taskId+date], status',
-  notes: 'id, createdAt',
-  history: 'id, type, refId, timestamp',
-  backups: 'id, createdAt',
-  settings: 'id',
-});
+interface TaskRow {
+  id: string;
+  durationMinutes?: number;
+}
 
-db.version(4).stores({
-  goals: 'id, status, deadline, createdAt, archived',
-  tasks: 'id, goalId, anchorDate, recurrence, createdAt',
-  occurrences: 'id, taskId, date, [taskId+date], status',
+interface GoalRow {
+  id: string;
+  archived?: boolean;
+}
+
+// v3 added `durationMinutes` to Task — backfill old rows so day free-time
+// summing can never produce `NaN`.
+db.version(3)
+  .stores({
+    goals: 'id, status, deadline, createdAt',
+    tasks: 'id, goalId, anchorDate, recurrence, createdAt',
+    occurrences: 'id, taskId, date, [taskId+date], status',
+    notes: 'id, createdAt',
+    history: 'id, type, refId, timestamp',
+    backups: 'id, createdAt',
+    settings: 'id',
+  })
+  .upgrade((trans) =>
+    trans
+      .table<TaskRow>('tasks')
+      .toCollection()
+      .modify((task) => {
+        if (task.durationMinutes === undefined) {
+          task.durationMinutes = 30;
+        }
+      }),
+  );
+
+// v4 added `archived` to Goal — backfill so old goals drop out of none of the
+// queries and always carry the field in exports/snapshots.
+db.version(4)
+  .stores({
+    goals: 'id, status, deadline, createdAt, archived',
+    tasks: 'id, goalId, anchorDate, recurrence, createdAt',
+    occurrences: 'id, taskId, date, [taskId+date], status',
+    notes: 'id, createdAt',
+    history: 'id, type, refId, timestamp',
+    backups: 'id, createdAt',
+    settings: 'id',
+  })
+  .upgrade((trans) =>
+    trans
+      .table<GoalRow>('goals')
+      .toCollection()
+      .modify((goal) => {
+        if (goal.archived === undefined) {
+          goal.archived = false;
+        }
+      }),
+  );
+
+// v5: drop indexes the app never queries (pure write overhead). Only the
+// indexes actually used by store.ts queries are kept.
+db.version(5).stores({
+  goals: 'id, createdAt',
+  tasks: 'id, goalId',
+  occurrences: 'id, taskId, date',
   notes: 'id, createdAt',
-  history: 'id, type, refId, timestamp',
+  history: 'id, timestamp',
   backups: 'id, createdAt',
   settings: 'id',
 });

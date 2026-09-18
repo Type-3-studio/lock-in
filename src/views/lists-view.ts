@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { PALETTE_CSS } from '../components/palette-css.js';
 import type { ListItem, Note } from '../db/types.js';
 import {
   addNoteItem,
@@ -18,12 +19,13 @@ import {
 import { todayISO } from '../lib/clock.js';
 import { confirmAction } from '../lib/confirm.js';
 import { noteStats } from '../lib/list.js';
+import { setupTabReselect } from '../lib/tab-reselect.js';
 
 type Screen = { kind: 'list' } | { kind: 'note'; id: string };
 
 @customElement('lists-view')
 export class ListsView extends LitElement {
-  static styles = css`
+  static styles = [PALETTE_CSS, css`
     :host {
       display: flex;
       flex-direction: column;
@@ -164,7 +166,8 @@ export class ListsView extends LitElement {
       gap: 8px;
       align-items: center;
     }
-  `;
+  `,
+  ];
 
   @state() private notes: Note[] = [];
   @state() private screen: Screen = { kind: 'list' };
@@ -172,19 +175,21 @@ export class ListsView extends LitElement {
   @state() private busy = false;
 
   private subscription?: { unsubscribe(): void };
+  private tabReselectCleanup: (() => void) | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
     this.subscription = liveNotes().subscribe((notes) => {
       this.notes = notes;
     });
-    this.addEventListener('tab-reselect', this.onTabReselect);
+    this.tabReselectCleanup = setupTabReselect(this, this.onTabReselect);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.subscription?.unsubscribe();
-    this.removeEventListener('tab-reselect', this.onTabReselect);
+    this.tabReselectCleanup?.();
+    this.tabReselectCleanup = null;
   }
 
   private onTabReselect = (): void => {

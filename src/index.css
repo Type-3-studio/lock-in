@@ -146,8 +146,3 @@ input[type='date'],
 input[type='time'] {
   color-scheme: inherit;
 }
-
-/* Outline buttons must stay visible against the current surface. */
-ion-button[fill='outline'] {
-  --border-color: var(--ion-color-step-300, currentColor);
-}

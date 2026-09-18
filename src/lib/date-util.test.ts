@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   addDays,
   addMonths,
-  clampDate,
   compareDates,
   dayOfWeek,
   daysInMonth,
@@ -11,28 +10,11 @@ import {
   endOfMonth,
   endOfWeek,
   fromDayNumber,
-  isISODate,
   isoWeek,
   startOfMonth,
   startOfWeek,
   toDayNumber,
-  weekKey,
 } from './date-util.js';
-
-describe('isISODate', () => {
-  it('accepts valid calendar dates', () => {
-    expect(isISODate('2026-09-15')).toBe(true);
-    expect(isISODate('2024-02-29')).toBe(true);
-  });
-
-  it('rejects malformed or impossible dates', () => {
-    expect(isISODate('2026-9-15')).toBe(false);
-    expect(isISODate('2026-13-01')).toBe(false);
-    expect(isISODate('2025-02-29')).toBe(false);
-    expect(isISODate('2026-04-31')).toBe(false);
-    expect(isISODate('not-a-date')).toBe(false);
-  });
-});
 
 describe('daysInMonth', () => {
   it('handles leap years', () => {
@@ -73,7 +55,7 @@ describe('addDays', () => {
   });
 });
 
-describe('diffDays / compareDates / clampDate', () => {
+describe('diffDays / compareDates', () => {
   it('measures whole-day differences', () => {
     expect(diffDays('2026-09-20', '2026-09-15')).toBe(5);
     expect(diffDays('2026-09-15', '2026-09-20')).toBe(-5);
@@ -84,12 +66,6 @@ describe('diffDays / compareDates / clampDate', () => {
     expect(compareDates('2026-09-15', '2026-09-16')).toBe(-1);
     expect(compareDates('2026-09-16', '2026-09-15')).toBe(1);
     expect(compareDates('2026-09-15', '2026-09-15')).toBe(0);
-  });
-
-  it('clamps within optional bounds', () => {
-    expect(clampDate('2026-09-15', '2026-09-01', '2026-09-30')).toBe('2026-09-15');
-    expect(clampDate('2026-08-01', '2026-09-01', null)).toBe('2026-09-01');
-    expect(clampDate('2026-10-01', null, '2026-09-30')).toBe('2026-09-30');
   });
 });
 
@@ -108,26 +84,26 @@ describe('dayOfWeek / week boundaries', () => {
   });
 });
 
-describe('isoWeek / weekKey', () => {
+describe('isoWeek', () => {
   it('numbers ordinary weeks', () => {
     expect(isoWeek('2026-09-15')).toEqual({ year: 2026, week: 38 });
-    expect(weekKey('2026-09-15')).toBe('2026-W38');
   });
 
   it('rolls early January into the previous ISO year', () => {
-    expect(weekKey('2021-01-01')).toBe('2020-W53');
-    expect(weekKey('2016-01-01')).toBe('2015-W53');
+    expect(isoWeek('2021-01-01').year).toBe(2020);
+    expect(isoWeek('2021-01-01').week).toBe(53);
+    expect(isoWeek('2016-01-01').week).toBe(53);
   });
 
   it('rolls late December into the next ISO year', () => {
-    expect(weekKey('2025-12-29')).toBe('2026-W01');
-    expect(weekKey('2019-12-30')).toBe('2020-W01');
+    expect(isoWeek('2025-12-29')).toEqual({ year: 2026, week: 1 });
+    expect(isoWeek('2019-12-30')).toEqual({ year: 2020, week: 1 });
   });
 
   it('keeps week 1 boundaries consistent', () => {
-    expect(weekKey('2026-01-01')).toBe('2026-W01');
-    expect(weekKey('2020-01-01')).toBe('2020-W01');
-    expect(weekKey('2020-12-31')).toBe('2020-W53');
+    expect(isoWeek('2026-01-01')).toEqual({ year: 2026, week: 1 });
+    expect(isoWeek('2020-01-01')).toEqual({ year: 2020, week: 1 });
+    expect(isoWeek('2020-12-31')).toEqual({ year: 2020, week: 53 });
   });
 });
 
@@ -145,6 +121,8 @@ describe('startOfMonth / endOfMonth / addMonths', () => {
     expect(addMonths('2026-03-31', -1)).toBe('2026-02-28');
     expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
     expect(addMonths('2026-01-15', -1)).toBe('2025-12-15');
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonths('2028-03-31', -1)).toBe('2028-02-29');
   });
 });
 

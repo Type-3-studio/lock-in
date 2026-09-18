@@ -22,7 +22,14 @@ export function deadlineInstant(deadline: ISODate): number {
 }
 
 export function countdownTo(deadline: ISODate, nowMs: number): Countdown {
-  const remaining = deadlineInstant(deadline) - nowMs;
+  if (deadline === '') {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, overdue: false };
+  }
+  return countdownFromInstant(deadlineInstant(deadline), nowMs);
+}
+
+function countdownFromInstant(deadlineInstant: number, nowMs: number): Countdown {
+  const remaining = deadlineInstant - nowMs;
   const total = Math.max(0, remaining);
   return {
     days: Math.floor(total / DAY_MS),
@@ -31,6 +38,12 @@ export function countdownTo(deadline: ISODate, nowMs: number): Countdown {
     seconds: Math.floor((total % MINUTE_MS) / SECOND_MS),
     overdue: remaining <= 0,
   };
+}
+
+/** Total milliseconds between now and the deadline, or 0 when no deadline is set. */
+export function countdownMs(deadline: ISODate, nowMs: number): number {
+  if (deadline === '') return 0;
+  return Math.max(0, deadlineInstant(deadline) - nowMs);
 }
 
 export function pad2(value: number): string {

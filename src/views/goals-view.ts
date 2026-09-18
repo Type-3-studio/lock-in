@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { PALETTE_CSS } from '../components/palette-css.js';
 import type { Goal, GoalStatus, Occurrence, Task } from '../db/types.js';
 import {
   createGoal,
@@ -8,14 +9,17 @@ import {
   liveOccurrencesInRange,
   liveTasks,
   updateGoal,
+  ALL_TIME_START,
+  ALL_TIME_END,
 } from '../db/store.js';
 import { logGoalLocked, logGoalTerminal, type SelfRating } from '../lib/history.js';
 import { isoDateOf, nowIso, todayISO } from '../lib/clock.js';
-import { countdownTo, pad2 } from '../lib/countdown.js';
 import { confirmAction } from '../lib/confirm.js';
 import { addDays, diffDays } from '../lib/date-util.js';
 import { goalProgress } from '../lib/progress.js';
 import { quoteFor } from '../lib/quotes.js';
+import { setupTabReselect } from '../lib/tab-reselect.js';
+import '../components/countdown-timer.js';
 import {
   canLock,
   isEditable,
@@ -68,7 +72,9 @@ const STATUS_COLOR: Record<GoalStatus, string> = {
 
 @customElement('goals-view')
 export class GoalsView extends LitElement {
-  static styles = css`
+  static styles = [
+    PALETTE_CSS,
+    css`
     :host {
       display: flex;
       flex-direction: column;
@@ -81,10 +87,6 @@ export class GoalsView extends LitElement {
       --padding-end: 16px;
       --padding-top: 16px;
       --padding-bottom: 16px;
-    }
-
-    .ion-text-wrap {
-      white-space: normal;
     }
 
     .empty {
@@ -259,42 +261,6 @@ export class GoalsView extends LitElement {
       font-size: 18px;
     }
 
-    /* Live countdown timer (hero goal) */
-    .countdown {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px;
-      margin-top: 14px;
-    }
-
-    .countdown .unit {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .countdown .num {
-      font-size: clamp(1.6rem, 9vw, 2.6rem);
-      font-weight: 300;
-      line-height: 1;
-      letter-spacing: -0.03em;
-      font-variant-numeric: tabular-nums;
-      color: var(--ion-text-color);
-    }
-
-    .countdown .lbl {
-      font-size: 0.6rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--ion-color-medium);
-    }
-
-    .countdown.overdue .num {
-      color: var(--ion-color-danger);
-    }
-
     .countdown-note {
       margin: 8px 0 0;
       font-size: 0.72rem;
@@ -419,7 +385,8 @@ export class GoalsView extends LitElement {
       padding-top: 8px;
       border-top: 1px solid var(--ion-color-step-150);
     }
-  `;
+  `,
+  ];
 
   @state() private goals: Goal[] = [];
   @state() private tasks: Task[] = [];
@@ -431,10 +398,9 @@ export class GoalsView extends LitElement {
   @state() private busy = false;
   @state() private expandedGoalId: string | null = null;
   @state() private showArchived = false;
-  @state() private now = Date.now();
 
   private subscriptions: Array<{ unsubscribe(): void }> = [];
-  private ticker: number | null = null;
+  private tabReselectCleanup: (() => void) | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -445,32 +411,20 @@ export class GoalsView extends LitElement {
       liveTasks().subscribe((tasks) => {
         this.tasks = tasks;
       }),
-      liveOccurrencesInRange('0000-01-01', '9999-12-31').subscribe((occurrences) => {
+      liveOccurrencesInRange(ALL_TIME_START, ALL_TIME_END).subscribe((occurrences) => {
         this.occurrences = occurrences;
       }),
     ];
-    this.addEventListener('tab-reselect', this.onTabReselect);
-    this.ticker = window.setInterval(this.tick, 1000);
+    this.tabReselectCleanup = setupTabReselect(this, this.onTabReselect);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());
     this.subscriptions = [];
-    this.removeEventListener('tab-reselect', this.onTabReselect);
-    if (this.ticker !== null) {
-      window.clearInterval(this.ticker);
-      this.ticker = null;
-    }
+    this.tabReselectCleanup?.();
+    this.tabReselectCleanup = null;
   }
-
-  /** Only tick while a countdown is actually on screen. */
-  private tick = (): void => {
-    const goal = this.heroGoal;
-    if (this.screen.kind === 'list' && goal !== undefined && goal.deadline !== null && !isTerminal(goal)) {
-      this.now = Date.now();
-    }
-  };
 
   private get heroGoal(): Goal | undefined {
     const active = this.goals.filter((goal) => !goal.archived);
@@ -739,7 +693,10 @@ export class GoalsView extends LitElement {
   }
 
   private renderHeroCard(goal: Goal): TemplateResult {
-    const left = isTerminal(goal) || goal.deadline === null ? null : timeLeft(goal, todayISO());
+    const left =
+      goal.status !== 'locked' || goal.deadline === null
+        ? null
+        : timeLeft(goal, todayISO());
     const expanded = this.expandedGoalId === goal.id;
     const progress = this.renderGoalProgress(goal);
     const focusTask =
@@ -752,7 +709,20 @@ export class GoalsView extends LitElement {
       meta.push(`locked ${new Date(goal.lockedAt).toLocaleDateString()}`);
     }
     return html`
-      <div class="hero-card" @click=${() => this.toggleExpand(goal.id)}>
+      <div
+        class="hero-card"
+        role="button"
+        tabindex="0"
+        aria-label=${`Toggle details for ${goal.title}`}
+        @click=${() => this.toggleExpand(goal.id)}
+        @keydown=${(event: KeyboardEvent) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.toggleExpand(goal.id);
+          }
+        }}
+      >
         <div class="hero-head">
           <h2>${goal.title}</h2>
           <button
@@ -784,23 +754,8 @@ export class GoalsView extends LitElement {
   }
 
   private renderCountdown(deadline: string, overdue: boolean): TemplateResult {
-    const remaining = countdownTo(deadline, this.now);
-    const unit = (value: number, label: string): TemplateResult => html`
-      <div class="unit">
-        <span class="num">${pad2(value)}</span>
-        <span class="lbl">${label}</span>
-      </div>
-    `;
-    const summary = overdue
-      ? `Deadline passed (${deadline})`
-      : `${remaining.days} days, ${remaining.hours} hours and ${remaining.minutes} minutes remaining`;
     return html`
-      <div class="countdown ${overdue ? 'overdue' : ''}" role="timer" aria-label=${summary}>
-        ${unit(remaining.days, 'Day')}
-        ${unit(remaining.hours, 'Hrs')}
-        ${unit(remaining.minutes, 'Min')}
-        ${unit(remaining.seconds, 'Sec')}
-      </div>
+      <countdown-timer deadline=${deadline} ?overdue=${overdue}></countdown-timer>
       <p class="countdown-note">
         ${overdue ? `Deadline passed — due ${deadline}` : `Locked deadline ${deadline}`}
       </p>
@@ -844,7 +799,20 @@ export class GoalsView extends LitElement {
       if (left !== null) meta.push(left.overdue ? `${left.days}d overdue` : `${left.days}d left`);
     }
     return html`
-      <div class="goal-item" @click=${() => this.open(goal.id)}>
+      <div
+        class="goal-item"
+        role="button"
+        tabindex="0"
+        aria-label=${`Open ${goal.title}`}
+        @click=${() => this.open(goal.id)}
+        @keydown=${(event: KeyboardEvent) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.open(goal.id);
+          }
+        }}
+      >
         <div class="goal-item-text">
           <h3>${goal.title}</h3>
           <p>${meta.join(' · ')}</p>
@@ -1115,7 +1083,7 @@ export class GoalsView extends LitElement {
               <ion-icon slot="start" name="refresh-outline"></ion-icon>Restart as new goal
             </ion-button>
             <ion-button fill="clear" @click=${() => goal.archived ? this.unarchiveGoal(goal) : this.archiveGoal(goal)}>
-              <ion-icon slot="start" name=${goal.archived ? 'archive-outline' : 'archive-outline'}></ion-icon>
+              <ion-icon slot="start" name=${goal.archived ? 'open-outline' : 'archive-outline'}></ion-icon>
               ${goal.archived ? 'Unarchive' : 'Archive'}
             </ion-button>
           </div>

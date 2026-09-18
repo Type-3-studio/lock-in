@@ -1,15 +1,13 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/db.js';
-import type { Goal, Note, Task } from '../db/types.js';
+import type { Goal, Task } from '../db/types.js';
 import { listHistory } from '../db/store.js';
 import {
   goalSnapshot,
   logGoalLocked,
   logGoalTerminal,
   logTaskMarked,
-  logWeekNote,
-  noteSnapshot,
   snapshot,
   taskSnapshot,
 } from './history.js';
@@ -42,24 +40,6 @@ const task: Task = {
   order: 0,
   createdAt: '2026-09-15T00:00:00.000Z',
   durationMinutes: 30,
-};
-
-const note: Note = {
-  id: 'n1',
-  title: 'Week 38',
-  body: 'lots done',
-  items: [
-    { id: 'i1', text: 'a', checked: false, status: 'idle', promotedTo: null, order: 0 },
-    {
-      id: 'i2',
-      text: 'b',
-      checked: true,
-      status: 'promoted',
-      promotedTo: { type: 'task', id: 't1' },
-      order: 1,
-    },
-  ],
-  createdAt: '2026-09-15T00:00:00.000Z',
 };
 
 beforeEach(async () => {
@@ -114,10 +94,6 @@ describe('snapshot builders', () => {
       status: 'done',
     });
   });
-
-  it('summarises a note by item count', () => {
-    expect(noteSnapshot(note)).toEqual({ title: 'Week 38', body: 'lots done', itemCount: 2 });
-  });
 });
 
 describe('loggers (append-only)', () => {
@@ -164,12 +140,5 @@ describe('loggers (append-only)', () => {
       date: '2026-09-16',
       status: 'missed',
     });
-  });
-
-  it('logs week notes', async () => {
-    await logWeekNote(note);
-    const [entry] = await listHistory();
-    expect(entry.type).toBe('week_note_added');
-    expect(entry.snapshot).toEqual({ title: 'Week 38', body: 'lots done', itemCount: 2 });
   });
 });

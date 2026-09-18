@@ -73,8 +73,7 @@ export type HistoryType =
   | 'goal_failed'
   | 'goal_abandoned'
   | 'task_done'
-  | 'task_missed'
-  | 'week_note_added';
+  | 'task_missed';
 
 export interface HistoryEntry {
   id: string;

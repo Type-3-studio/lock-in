@@ -1,4 +1,4 @@
-import type { Goal, GoalStatus, HistoryEntry, HistoryType, Note, Task, TaskStatus } from '../db/types.js';
+import type { Goal, GoalStatus, HistoryEntry, HistoryType, Task, TaskStatus } from '../db/types.js';
 import { logHistory } from '../db/store.js';
 
 export interface GoalSnapshot {
@@ -36,12 +36,6 @@ export interface TaskSnapshot {
   date: string;
   status: TaskStatus;
   durationMinutes: number;
-}
-
-export interface NoteSnapshot {
-  title: string;
-  body: string;
-  itemCount: number;
 }
 
 function deepFreeze<T>(value: T): T {
@@ -93,16 +87,7 @@ export function taskSnapshot(task: Task, date: string, status: TaskStatus): Task
   });
 }
 
-export function noteSnapshot(note: Note): NoteSnapshot {
-  return snapshot({
-    title: note.title,
-    body: note.body,
-    itemCount: note.items.length,
-  });
-}
-
 /* -------------------------------- Loggers --------------------------------- */
-/* Append-only: these only ever add entries, never update or delete them.       */
 
 export function logGoalLocked(goal: Goal): Promise<HistoryEntry> {
   return logHistory({ type: 'goal_locked', refId: goal.id, snapshot: goalSnapshot(goal) });
@@ -124,8 +109,4 @@ export function logTaskMarked(
 ): Promise<HistoryEntry> {
   const type: HistoryType = status === 'done' ? 'task_done' : 'task_missed';
   return logHistory({ type, refId: task.id, snapshot: taskSnapshot(task, date, status) });
-}
-
-export function logWeekNote(note: Note): Promise<HistoryEntry> {
-  return logHistory({ type: 'week_note_added', refId: note.id, snapshot: noteSnapshot(note) });
 }
