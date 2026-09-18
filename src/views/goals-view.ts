@@ -123,10 +123,10 @@ export class GoalsView extends LitElement {
       font: inherit;
       font-weight: 400;
       padding: 10px 12px;
-      border: 1px solid var(--ion-color-step-200, #d4d4d8);
+      border: 1px solid var(--ion-color-step-200);
       border-radius: 8px;
-      background: var(--ion-background-color, #fff);
-      color: var(--ion-text-color, #111);
+      background: var(--ion-background-color);
+      color: var(--ion-text-color);
       resize: vertical;
     }
 
@@ -163,7 +163,7 @@ export class GoalsView extends LitElement {
       font-size: 1rem;
       text-transform: none;
       letter-spacing: 0;
-      color: var(--ion-text-color, #111);
+      color: var(--ion-text-color);
     }
 
     .detail section p {
@@ -211,6 +211,194 @@ export class GoalsView extends LitElement {
       border-radius: 4px;
       overflow: hidden;
     }
+
+    /* Hero card (first locked goal) */
+    .hero-card {
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+      background: var(--ion-color-step-50);
+      border: 1px solid var(--ion-color-step-150);
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+
+    .hero-card:active {
+      box-shadow: inset 0 0 0 2px var(--ion-color-primary);
+    }
+
+    .hero-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .hero-head h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--ion-text-color);
+    }
+
+    .hero-edit-btn {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--ion-color-step-200);
+      background: var(--ion-background-color);
+      color: var(--ion-color-medium);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .hero-edit-btn ion-icon {
+      font-size: 18px;
+    }
+
+    .hero-countdown {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .hero-countdown .number {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--ion-color-primary);
+    }
+
+    .hero-countdown .label {
+      font-size: 0.85rem;
+      color: var(--ion-color-medium);
+    }
+
+    .hero-countdown.overdue .number {
+      color: var(--ion-color-danger);
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: var(--ion-color-medium);
+    }
+
+    .hero-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hero-progress {
+      margin-top: 12px;
+    }
+
+    .hero-progress p {
+      margin: 4px 0 0;
+      font-size: 0.78rem;
+      color: var(--ion-color-medium);
+    }
+
+    .hero-detail {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--ion-color-step-150);
+      display: grid;
+      gap: 10px;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-detail section h3 {
+      margin: 0 0 2px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ion-color-medium);
+    }
+
+    .hero-detail section p {
+      margin: 0;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+
+    .hero-detail .focus-task {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--ion-color-primary-tint);
+      font-size: 0.85rem;
+    }
+
+    .hero-detail .focus-task .star {
+      color: var(--ion-color-primary);
+    }
+
+    /* Compact goal list */
+    .goal-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .goal-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--ion-color-step-150);
+      border-radius: 10px;
+      background: var(--ion-background-color);
+      cursor: pointer;
+    }
+
+    .goal-item:active {
+      background: var(--ion-color-step-50);
+    }
+
+    .goal-item-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .goal-item-text h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--ion-text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .goal-item-text p {
+      margin: 2px 0 0;
+      font-size: 0.78rem;
+      color: var(--ion-color-medium);
+    }
+
+    .goal-item-badge {
+      flex: none;
+    }
+
+    .archived-section {
+      margin-top: 16px;
+      padding-top: 8px;
+      border-top: 1px solid var(--ion-color-step-150);
+    }
   `;
 
   @state() private goals: Goal[] = [];
@@ -221,6 +409,8 @@ export class GoalsView extends LitElement {
   @state() private form: DraftForm = { ...EMPTY_FORM };
   @state() private outcome: OutcomeForm = { ...EMPTY_OUTCOME };
   @state() private busy = false;
+  @state() private expandedGoalId: string | null = null;
+  @state() private showArchived = false;
 
   private subscriptions: Array<{ unsubscribe(): void }> = [];
 
@@ -237,13 +427,24 @@ export class GoalsView extends LitElement {
         this.occurrences = occurrences;
       }),
     ];
+    this.addEventListener('tab-reselect', this.onTabReselect);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());
     this.subscriptions = [];
+    this.removeEventListener('tab-reselect', this.onTabReselect);
   }
+
+  private onTabReselect = (): void => {
+    if (this.screen.kind !== 'list') {
+      this.screen = { kind: 'list' };
+      this.expandedGoalId = null;
+    } else if (this.expandedGoalId !== null) {
+      this.expandedGoalId = null;
+    }
+  };
 
   private goalById(id: string): Goal | undefined {
     return this.goals.find((goal) => goal.id === id);
@@ -472,10 +673,111 @@ export class GoalsView extends LitElement {
         </div>
       `;
     }
-    return html`<ion-list>${this.goals.map((goal) => this.renderListItem(goal))}</ion-list>`;
+    const active = this.goals.filter((g) => !g.archived);
+    const archived = this.goals.filter((g) => g.archived);
+    const heroGoal = active.find((g) => g.status === 'locked') ?? active[0];
+    const rest = heroGoal !== undefined ? active.filter((g) => g.id !== heroGoal.id) : active;
+    return html`
+      ${heroGoal !== undefined ? this.renderHeroCard(heroGoal) : nothing}
+      ${rest.length > 0
+        ? html`<div class="goal-list">${rest.map((goal) => this.renderCompactGoal(goal))}</div>`
+        : nothing}
+      ${archived.length > 0
+        ? html`
+            <div class="archived-section">
+              <ion-button fill="clear" size="small" @click=${() => (this.showArchived = !this.showArchived)}>
+                <ion-icon slot="start" name=${this.showArchived ? 'chevron-up-outline' : 'chevron-down-outline'}></ion-icon>
+                Archived (${archived.length})
+              </ion-button>
+              ${this.showArchived
+                ? html`<div class="goal-list">${archived.map((goal) => this.renderCompactGoal(goal))}</div>`
+                : nothing}
+            </div>
+          `
+        : nothing}
+    `;
   }
 
-  private renderListItem(goal: Goal): TemplateResult {
+  private renderHeroCard(goal: Goal): TemplateResult {
+    const left = isTerminal(goal) ? null : timeLeft(goal, todayISO());
+    const expanded = this.expandedGoalId === goal.id;
+    const progress = this.renderGoalProgress(goal);
+    const focusTask =
+      goal.activeTaskId !== null
+        ? this.tasks.find((task) => task.id === goal.activeTaskId)
+        : undefined;
+    const meta: string[] = [];
+    if (goal.deadline !== null) meta.push(`due ${goal.deadline}`);
+    if (goal.status === 'locked' && goal.lockedAt !== null) {
+      meta.push(`locked ${new Date(goal.lockedAt).toLocaleDateString()}`);
+    }
+    return html`
+      <div class="hero-card" @click=${() => this.toggleExpand(goal.id)}>
+        <div class="hero-head">
+          <h2>${goal.title}</h2>
+          <button
+            class="hero-edit-btn"
+            aria-label="Edit goal"
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this.startEdit(goal);
+            }}
+          >
+            <ion-icon name="create-outline"></ion-icon>
+          </button>
+        </div>
+        ${left !== null
+          ? html`
+              <div class="hero-countdown ${left.overdue ? 'overdue' : ''}">
+                <span class="number">${left.days}</span>
+                <span class="label">${left.overdue ? 'days overdue' : 'days left'}</span>
+              </div>
+            `
+          : nothing}
+        <div class="hero-meta">
+          ${meta.map((m) => html`<span>${m}</span>`)}
+          <span>
+            <ion-badge color=${STATUS_COLOR[goal.status]} mode="ios">
+              ${STATUS_LABEL[goal.status]}
+            </ion-badge>
+          </span>
+        </div>
+        ${progress}
+        ${expanded ? this.renderHeroDetail(goal, focusTask) : nothing}
+      </div>
+    `;
+  }
+
+  private renderHeroDetail(
+    goal: Goal,
+    focusTask: Task | undefined,
+  ): TemplateResult {
+    return html`
+      <div class="hero-detail">
+        ${goal.reasons
+          ? html`<section>
+              <h3>Why this matters</h3>
+              <p>${goal.reasons}</p>
+            </section>`
+          : nothing}
+        ${goal.specifics
+          ? html`<section><h3>What done looks like</h3><p>${goal.specifics}</p></section>`
+          : nothing}
+        ${goal.measure
+          ? html`<section><h3>How it's measured</h3><p>${goal.measure}</p></section>`
+          : nothing}
+        ${focusTask
+          ? html`<div class="focus-task">
+              <span class="star">&#9733;</span> ${focusTask.title}
+            </div>`
+          : nothing}
+        ${goal.status === 'locked' ? this.renderQuote(goal.id) : nothing}
+        ${this.renderDetailActions(goal)}
+      </div>
+    `;
+  }
+
+  private renderCompactGoal(goal: Goal): TemplateResult {
     const meta: string[] = [];
     if (goal.deadline !== null) meta.push(`due ${goal.deadline}`);
     if (goal.status === 'locked') {
@@ -483,16 +785,32 @@ export class GoalsView extends LitElement {
       if (left !== null) meta.push(left.overdue ? `${left.days}d overdue` : `${left.days}d left`);
     }
     return html`
-      <ion-item button @click=${() => this.open(goal.id)}>
-        <ion-label class="ion-text-wrap">
-          <h2>${goal.title}</h2>
+      <div class="goal-item" @click=${() => this.open(goal.id)}>
+        <div class="goal-item-text">
+          <h3>${goal.title}</h3>
           <p>${meta.join(' · ')}</p>
-        </ion-label>
-        <ion-badge slot="end" color=${STATUS_COLOR[goal.status]}>
-          ${STATUS_LABEL[goal.status]}
-        </ion-badge>
-      </ion-item>
+        </div>
+        <div class="goal-item-badge">
+          <ion-badge color=${STATUS_COLOR[goal.status]}>
+            ${STATUS_LABEL[goal.status]}
+          </ion-badge>
+        </div>
+      </div>
     `;
+  }
+
+  private toggleExpand(id: string): void {
+    this.expandedGoalId = this.expandedGoalId === id ? null : id;
+  }
+
+  private async archiveGoal(goal: Goal): Promise<void> {
+    await updateGoal(goal.id, { archived: true });
+    this.screen = { kind: 'list' };
+  }
+
+  private async unarchiveGoal(goal: Goal): Promise<void> {
+    await updateGoal(goal.id, { archived: false });
+    this.screen = { kind: 'list' };
   }
 
   private textField(
@@ -556,13 +874,13 @@ export class GoalsView extends LitElement {
           ? html`
               <h2>When will it be done?</h2>
               <div class="actions">
-                <ion-button size="small" fill="outline" @click=${() => this.pickDeadline(7)}>
+                <ion-button size="small" fill="clear" @click=${() => this.pickDeadline(7)}>
                   1 week
                 </ion-button>
-                <ion-button size="small" fill="outline" @click=${() => this.pickDeadline(14)}>
+                <ion-button size="small" fill="clear" @click=${() => this.pickDeadline(14)}>
                   2 weeks
                 </ion-button>
-                <ion-button size="small" fill="outline" @click=${() => this.pickDeadline(30)}>
+                <ion-button size="small" fill="clear" @click=${() => this.pickDeadline(30)}>
                   1 month
                 </ion-button>
               </div>
@@ -622,7 +940,7 @@ export class GoalsView extends LitElement {
 
   private renderDetail(goal: Goal): TemplateResult {
     const left = isTerminal(goal) ? null : timeLeft(goal, todayISO());
-    const progress = this.renderProgress(goal);
+    const progress = this.renderGoalProgress(goal);
     const focusTask =
       goal.activeTaskId !== null
         ? this.tasks.find((task) => task.id === goal.activeTaskId)
@@ -680,7 +998,7 @@ export class GoalsView extends LitElement {
     `;
   }
 
-  private renderProgress(goal: Goal): TemplateResult | typeof nothing {    const tasks = this.tasks.filter((task) => task.goalId === goal.id);
+  private renderGoalProgress(goal: Goal): TemplateResult | typeof nothing {    const tasks = this.tasks.filter((task) => task.goalId === goal.id);
     if (tasks.length === 0) return nothing;
     const start = isoDateOf(goal.lockedAt ?? goal.createdAt);
     const progress = goalProgress(tasks, this.occurrences, { start, end: todayISO() }, goal.deadline);
@@ -698,7 +1016,7 @@ export class GoalsView extends LitElement {
     if (isEditable(goal)) {
       return html`
         <div class="actions">
-          <ion-button fill="outline" @click=${() => this.startEdit(goal)}>
+          <ion-button fill="clear" @click=${() => this.startEdit(goal)}>
             <ion-icon slot="start" name="create-outline"></ion-icon>Edit
           </ion-button>
           <ion-button ?disabled=${!canLock(goal)} @click=${() => this.lock(goal)}>
@@ -734,8 +1052,12 @@ export class GoalsView extends LitElement {
     return isTerminal(goal)
       ? html`
           <div class="actions">
-            <ion-button fill="outline" @click=${() => this.restart(goal)}>
+            <ion-button fill="clear" @click=${() => this.restart(goal)}>
               <ion-icon slot="start" name="refresh-outline"></ion-icon>Restart as new goal
+            </ion-button>
+            <ion-button fill="clear" @click=${() => goal.archived ? this.unarchiveGoal(goal) : this.archiveGoal(goal)}>
+              <ion-icon slot="start" name=${goal.archived ? 'archive-outline' : 'archive-outline'}></ion-icon>
+              ${goal.archived ? 'Unarchive' : 'Archive'}
             </ion-button>
           </div>
           <p class="hint">This goal is closed. Its history is permanent.</p>
@@ -756,14 +1078,14 @@ export class GoalsView extends LitElement {
           <div class="actions">
             <ion-button
               color="success"
-              fill=${this.outcome.rating === 'good' ? 'solid' : 'outline'}
+              fill=${this.outcome.rating === 'good' ? 'solid' : 'clear'}
               @click=${() => this.setRating('good')}
             >
               Good
             </ion-button>
             <ion-button
               color="danger"
-              fill=${this.outcome.rating === 'bad' ? 'solid' : 'outline'}
+              fill=${this.outcome.rating === 'bad' ? 'solid' : 'clear'}
               @click=${() => this.setRating('bad')}
             >
               Bad

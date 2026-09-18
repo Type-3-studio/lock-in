@@ -27,6 +27,7 @@ const goal: Goal = {
   color: '#f59e0b',
   icon: 'flag',
   activeTaskId: null,
+  archived: false,
 };
 
 const task: Task = {
@@ -40,6 +41,7 @@ const task: Task = {
   sourceNoteId: null,
   order: 0,
   createdAt: '2026-09-15T00:00:00.000Z',
+  durationMinutes: 30,
 };
 
 const note: Note = {
@@ -98,6 +100,7 @@ describe('snapshot builders', () => {
       lockedAt: null,
       color: '#f59e0b',
       icon: 'flag',
+      archived: false,
     });
     expect('id' in result).toBe(false);
   });

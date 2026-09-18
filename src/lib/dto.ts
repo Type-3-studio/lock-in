@@ -3,10 +3,11 @@ import type {
   HistoryEntry,
   Note,
   Occurrence,
+  Settings,
   Task,
 } from '../db/types.js';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export interface ExportDto {
   schemaVersion: number;
@@ -16,6 +17,7 @@ export interface ExportDto {
   occurrences: Occurrence[];
   notes: Note[];
   history: HistoryEntry[];
+  settings?: Settings;
 }
 
 export interface ExportState {
@@ -24,6 +26,7 @@ export interface ExportState {
   occurrences: Occurrence[];
   notes: Note[];
   history: HistoryEntry[];
+  settings?: Settings;
 }
 
 const COLLECTIONS = ['goals', 'tasks', 'occurrences', 'notes', 'history'] as const;
@@ -38,9 +41,10 @@ export function parseExport(value: unknown): ExportDto {
     throw new Error('Import must be a JSON object.');
   }
   const candidate = value as Record<string, unknown>;
-  if (candidate.schemaVersion !== SCHEMA_VERSION) {
+  // Accept v1 (no settings) or v2 (with settings)
+  if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
     throw new Error(
-      `Unsupported schemaVersion ${String(candidate.schemaVersion)} (expected ${SCHEMA_VERSION}).`,
+      `Unsupported schemaVersion ${String(candidate.schemaVersion)} (expected 1 or 2).`,
     );
   }
   for (const key of COLLECTIONS) {

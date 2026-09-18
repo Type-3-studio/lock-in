@@ -8,6 +8,10 @@ export interface WeekDayCell {
   dayNumber: number;
   tasks: ScheduledTask[];
   today: boolean;
+  /** Whether this day is part of the deadline progress line. */
+  deadlineLine?: boolean;
+  /** Free minutes remaining in the day (null if settings not configured). */
+  freeMinutes?: number | null;
 }
 
 export interface WeekRowModel {
@@ -48,7 +52,7 @@ export class WeeksTable extends LitElement {
 
     th,
     td {
-      border: 1px solid var(--ion-color-step-150, #dbe2ea);
+      border: 1px solid var(--ion-color-step-150);
       padding: 0;
     }
 
@@ -56,7 +60,7 @@ export class WeeksTable extends LitElement {
       padding: 8px 6px;
       font-weight: 600;
       color: var(--ion-color-medium);
-      background: var(--ion-color-step-50, #f7f9fc);
+      background: var(--ion-color-step-50);
       text-align: center;
       white-space: nowrap;
     }
@@ -65,7 +69,7 @@ export class WeeksTable extends LitElement {
       width: 22%;
       text-align: left;
       padding: 8px 10px;
-      background: var(--ion-color-step-50, #f2f6fb);
+      background: var(--ion-color-step-50);
       vertical-align: middle;
     }
 
@@ -76,7 +80,7 @@ export class WeeksTable extends LitElement {
     .wnum {
       display: block;
       font-weight: 700;
-      color: var(--ion-text-color, #111);
+      color: var(--ion-text-color);
     }
 
     .wrange {
@@ -119,7 +123,7 @@ export class WeeksTable extends LitElement {
     }
 
     .day:hover {
-      background: var(--ion-color-step-50, #f7f9fc);
+      background: var(--ion-color-step-50);
     }
 
     .day.today {
@@ -161,6 +165,38 @@ export class WeeksTable extends LitElement {
       font-size: 0.62rem;
       color: var(--ion-color-medium);
     }
+
+    .deadline-line {
+      position: relative;
+    }
+
+    .deadline-line::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--ion-color-danger);
+      border-radius: 2px;
+    }
+
+    .free {
+      display: inline-block;
+      font-size: 0.55rem;
+      font-weight: 600;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: var(--ion-color-step-150);
+      color: var(--ion-color-medium);
+      margin-top: auto;
+      line-height: 1.3;
+    }
+
+    .free.over {
+      background: color-mix(in srgb, var(--ion-color-danger) 15%, transparent);
+      color: var(--ion-color-danger);
+    }
   `;
 
   @property({ attribute: false }) weeks: WeekRowModel[] = [];
@@ -200,10 +236,14 @@ export class WeeksTable extends LitElement {
 
   private renderDay(day: WeekDayCell): TemplateResult {
     const visible = day.tasks.slice(0, 4);
+    const classes = ['day', day.today ? 'today' : '', day.deadlineLine ? 'deadline-line' : '']
+      .filter(Boolean)
+      .join(' ');
+    const freeMinutes = day.freeMinutes;
     return html`
       <td>
         <button
-          class="day ${day.today ? 'today' : ''}"
+          class=${classes}
           aria-label=${`Manage tasks for ${day.date}`}
           @click=${() => this.emit('day-select', day.date)}
         >
@@ -214,6 +254,11 @@ export class WeeksTable extends LitElement {
                 ${day.tasks.length > visible.length
                   ? html`<span class="more">+${day.tasks.length - visible.length}</span>`
                   : nothing}
+              </span>`
+            : nothing}
+          ${freeMinutes !== undefined && freeMinutes !== null
+            ? html`<span class="free ${freeMinutes < 0 ? 'over' : ''}">
+                ${(freeMinutes / 60).toFixed(1)}
               </span>`
             : nothing}
         </button>

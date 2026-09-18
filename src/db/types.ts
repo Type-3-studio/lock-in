@@ -21,6 +21,8 @@ export interface Goal {
   icon: string | null;
   /** The single task this goal should be focused on right now, if any. */
   activeTaskId: string | null;
+  /** When true, goal is hidden from the main list. */
+  archived: boolean;
 }
 
 export interface Task {
@@ -35,6 +37,8 @@ export interface Task {
   sourceNoteId: string | null;
   /** Sort key within the task's goal (or the unfiled group). */
   order: number;
+  /** Estimated duration in minutes (default 30, minimum 5). */
+  durationMinutes: number;
   createdAt: string;
 }
 
@@ -78,4 +82,15 @@ export interface HistoryEntry {
   refId: string;
   snapshot: unknown;
   timestamp: string;
+}
+
+export interface Settings {
+  /** Singleton key — always `'default'`. */
+  id: string;
+  /** Wake time in "HH:MM" format (24h). */
+  wakeTime: string;
+  /** Bed time in "HH:MM" format (24h). */
+  bedTime: string;
+  /** Whether to show the deadline progress line on the weeks calendar. */
+  showDeadlineLine: boolean;
 }

@@ -8,6 +8,7 @@ import type {
   Note,
   Occurrence,
   Recurrence,
+  Settings,
   Task,
   TaskStatus,
 } from './types.js';
@@ -58,6 +59,7 @@ export async function createGoal(draft: GoalDraft): Promise<Goal> {
     color: draft.color ?? null,
     icon: draft.icon ?? null,
     activeTaskId: null,
+    archived: false,
   };
   await db.goals.add(goal);
   return goal;
@@ -100,6 +102,7 @@ export interface TaskDraft {
   recurrenceDays?: number[] | null;
   recurrenceEnd?: string | null;
   sourceNoteId?: string | null;
+  durationMinutes?: number;
 }
 
 export async function createTask(draft: TaskDraft): Promise<Task> {
@@ -116,6 +119,7 @@ export async function createTask(draft: TaskDraft): Promise<Task> {
     recurrenceEnd: draft.recurrenceEnd ?? null,
     sourceNoteId: draft.sourceNoteId ?? null,
     order,
+    durationMinutes: draft.durationMinutes ?? 30,
     createdAt: now(),
   };
   await db.tasks.add(task);
@@ -304,6 +308,31 @@ export async function removeNoteItem(noteId: string, itemId: string): Promise<vo
   });
 }
 
+/* -------------------------------- Settings -------------------------------- */
+
+const DEFAULT_SETTINGS: Settings = {
+  id: 'default',
+  wakeTime: '07:00',
+  bedTime: '23:00',
+  showDeadlineLine: true,
+};
+
+export async function getSettings(): Promise<Settings> {
+  const existing = await db.settings.get('default');
+  return existing ?? DEFAULT_SETTINGS;
+}
+
+export function liveSettings(): Observable<Settings> {
+  return liveQuery(() => getSettings());
+}
+
+export async function updateSettings(
+  changes: Partial<Omit<Settings, 'id'>>,
+): Promise<void> {
+  const current = await getSettings();
+  await db.settings.put({ ...current, ...changes });
+}
+
 /* --------------------------------- History -------------------------------- */
 
 export interface HistoryInput {
@@ -339,14 +368,15 @@ export function liveHistory(): Observable<HistoryEntry[]> {
 const BACKUP_LIMIT = 5;
 
 export async function exportData(): Promise<ExportDto> {
-  const [goals, tasks, occurrences, notes, history] = await Promise.all([
+  const [goals, tasks, occurrences, notes, history, settings] = await Promise.all([
     db.goals.toArray(),
     db.tasks.toArray(),
     db.occurrences.toArray(),
     db.notes.toArray(),
     db.history.toArray(),
+    getSettings(),
   ]);
-  return createExport({ goals, tasks, occurrences, notes, history }, now());
+  return createExport({ goals, tasks, occurrences, notes, history, settings }, now());
 }
 
 /** Replace-only import. Backs up current state to the `backups` table before wiping. */
@@ -354,7 +384,7 @@ export async function importData(dto: ExportDto): Promise<void> {
   const backup: Backup = { id: newId(), createdAt: now(), data: await exportData() };
   await db.transaction(
     'rw',
-    [db.goals, db.tasks, db.occurrences, db.notes, db.history, db.backups],
+    [db.goals, db.tasks, db.occurrences, db.notes, db.history, db.backups, db.settings],
     async () => {
       await db.backups.add(backup);
       await db.goals.clear();
@@ -362,11 +392,15 @@ export async function importData(dto: ExportDto): Promise<void> {
       await db.occurrences.clear();
       await db.notes.clear();
       await db.history.clear();
+      await db.settings.clear();
       await db.goals.bulkAdd(dto.goals);
       await db.tasks.bulkAdd(dto.tasks);
       await db.occurrences.bulkAdd(dto.occurrences);
       await db.notes.bulkAdd(dto.notes);
       await db.history.bulkAdd(dto.history);
+      if (dto.settings !== undefined) {
+        await db.settings.put(dto.settings);
+      }
     },
   );
   await pruneBackups();

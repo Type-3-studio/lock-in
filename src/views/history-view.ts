@@ -1,12 +1,14 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import type { HistoryEntry, HistoryType } from '../db/types.js';
+import type { HistoryEntry, HistoryType, Settings } from '../db/types.js';
 import {
   exportData,
   importData,
   liveBackups,
   liveHistory,
+  liveSettings,
   restoreBackup,
+  updateSettings,
 } from '../db/store.js';
 import type { Backup } from '../db/db.js';
 import { parseExportJson } from '../lib/dto.js';
@@ -157,6 +159,24 @@ export class HistoryView extends LitElement {
       font-size: 0.85rem;
       padding: 6px 0;
     }
+
+    .time-label {
+      display: grid;
+      gap: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ion-color-medium);
+    }
+
+    .time-label input {
+      font: inherit;
+      font-weight: 400;
+      padding: 6px 10px;
+      border: 1px solid var(--ion-color-step-200);
+      border-radius: 8px;
+      background: var(--ion-background-color);
+      color: var(--ion-text-color);
+    }
   `;
 
   @state() private entries: HistoryEntry[] = [];
@@ -164,6 +184,7 @@ export class HistoryView extends LitElement {
   @state() private accent = loadAccent();
   @state() private crt = loadCrt();
   @state() private busy = false;
+  @state() private settings: Settings = { id: 'default', wakeTime: '07:00', bedTime: '23:00', showDeadlineLine: true };
 
   private subscriptions: Array<{ unsubscribe(): void }> = [];
 
@@ -175,6 +196,9 @@ export class HistoryView extends LitElement {
       }),
       liveBackups().subscribe((backups) => {
         this.backups = backups;
+      }),
+      liveSettings().subscribe((settings) => {
+        this.settings = settings;
       }),
     ];
   }
@@ -285,6 +309,14 @@ export class HistoryView extends LitElement {
     applyCrt(this.crt);
   }
 
+  private async onTimeChange(field: 'wakeTime' | 'bedTime', value: string): Promise<void> {
+    await updateSettings({ [field]: value });
+  }
+
+  private async onDeadlineLineToggle(checked: boolean): Promise<void> {
+    await updateSettings({ showDeadlineLine: checked });
+  }
+
   render(): TemplateResult {
     return html`
       <ion-header>
@@ -332,6 +364,34 @@ export class HistoryView extends LitElement {
               `,
             )}
             <ion-toggle .checked=${this.crt} @ionChange=${this.toggleCrt}>CRT mode</ion-toggle>
+          </div>
+
+          <h2>Schedule</h2>
+          <div class="row">
+            <label class="time-label">
+              Wake time
+              <input
+                type="time"
+                .value=${this.settings.wakeTime}
+                @change=${(e: Event) => this.onTimeChange('wakeTime', (e.target as HTMLInputElement).value)}
+              />
+            </label>
+            <label class="time-label">
+              Bed time
+              <input
+                type="time"
+                .value=${this.settings.bedTime}
+                @change=${(e: Event) => this.onTimeChange('bedTime', (e.target as HTMLInputElement).value)}
+              />
+            </label>
+          </div>
+          <div class="row">
+            <ion-toggle
+              .checked=${this.settings.showDeadlineLine}
+              @ionChange=${(e: Event) => this.onDeadlineLineToggle((e.target as HTMLIonToggleElement).checked)}
+            >
+              Show deadline line on calendar
+            </ion-toggle>
           </div>
 
           <div class="row">

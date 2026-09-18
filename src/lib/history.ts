@@ -12,6 +12,7 @@ export interface GoalSnapshot {
   lockedAt: string | null;
   color: string | null;
   icon: string | null;
+  archived: boolean;
 }
 
 export type SelfRating = 'good' | 'bad';
@@ -34,6 +35,7 @@ export interface TaskSnapshot {
   recurrenceEnd: string | null;
   date: string;
   status: TaskStatus;
+  durationMinutes: number;
 }
 
 export interface NoteSnapshot {
@@ -69,6 +71,7 @@ export function goalSnapshot(goal: Goal): GoalSnapshot {
     lockedAt: goal.lockedAt,
     color: goal.color,
     icon: goal.icon,
+    archived: goal.archived,
   });
 }
 
@@ -86,6 +89,7 @@ export function taskSnapshot(task: Task, date: string, status: TaskStatus): Task
     recurrenceEnd: task.recurrenceEnd,
     date,
     status,
+    durationMinutes: task.durationMinutes,
   });
 }
 

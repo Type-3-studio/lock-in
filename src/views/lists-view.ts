@@ -67,10 +67,10 @@ export class ListsView extends LitElement {
       font: inherit;
       font-weight: 400;
       padding: 10px 12px;
-      border: 1px solid var(--ion-color-step-200, #d4d4d8);
+      border: 1px solid var(--ion-color-step-200);
       border-radius: 8px;
-      background: var(--ion-background-color, #fff);
-      color: var(--ion-text-color, #111);
+      background: var(--ion-background-color);
+      color: var(--ion-text-color);
       width: 100%;
     }
 
@@ -178,12 +178,20 @@ export class ListsView extends LitElement {
     this.subscription = liveNotes().subscribe((notes) => {
       this.notes = notes;
     });
+    this.addEventListener('tab-reselect', this.onTabReselect);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.subscription?.unsubscribe();
+    this.removeEventListener('tab-reselect', this.onTabReselect);
   }
+
+  private onTabReselect = (): void => {
+    if (this.screen.kind !== 'list') {
+      this.screen = { kind: 'list' };
+    }
+  };
 
   private get activeNote(): Note | undefined {
     const screen = this.screen;

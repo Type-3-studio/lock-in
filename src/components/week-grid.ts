@@ -10,6 +10,8 @@ export interface GridDay {
   date: ISODate;
   tasks: ScheduledTask[];
   muted?: boolean;
+  /** Whether this day is part of the deadline progress line. */
+  deadlineLine?: boolean;
 }
 
 export interface TaskSelectDetail {
@@ -49,9 +51,9 @@ export class WeekGrid extends LitElement {
       gap: 6px;
       min-width: 0;
       padding: 6px;
-      border: 1px solid var(--ion-color-step-150, #e5e5e5);
+      border: 1px solid var(--ion-color-step-150);
       border-radius: 10px;
-      background: var(--ion-background-color, #fff);
+      background: var(--ion-background-color);
     }
 
     .day.compact {
@@ -101,7 +103,7 @@ export class WeekGrid extends LitElement {
       padding: 3px 4px;
       border-left: 3px solid var(--ion-color-medium);
       border-radius: 5px;
-      background: var(--ion-color-step-50, #f4f4f5);
+      background: var(--ion-color-step-50);
       font-size: 0.75rem;
       cursor: pointer;
     }
@@ -195,6 +197,21 @@ export class WeekGrid extends LitElement {
       font-size: 0.65rem;
       color: var(--ion-color-medium);
     }
+
+    .deadline-line {
+      position: relative;
+    }
+
+    .deadline-line::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--ion-color-danger);
+      border-radius: 2px;
+    }
   `;
 
   @property({ attribute: false }) days: GridDay[] = [];
@@ -216,6 +233,7 @@ export class WeekGrid extends LitElement {
       this.density,
       day.date === this.today ? 'today' : '',
       day.muted ? 'muted' : '',
+      day.deadlineLine ? 'deadline-line' : '',
     ]
       .filter(Boolean)
       .join(' ');

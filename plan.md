@@ -8,7 +8,7 @@ verified (built + tested).
 - Ionic web components + Vite/TS/pnpm/vitest/vite-plugin-pwa (mirrors `breath-badger`).
 - Recurring tasks: template + deterministic occurrence generation.
 - Locked goal terminal status is permanent.
-- Import: replace-only + auto-backup.
+- Import: replace-only + auto-backup (schema version 2).
 
 ## Milestones
 
@@ -75,6 +75,26 @@ verified (built + tested).
 - [ ] Cloudflare Pages project + custom domain `lockin.t3apps.com` (dashboard wiring)
 - [ ] Capacitor wrap for iOS/Android — later
 
+### M7 — Enhanced calendar + scheduling
+- [x] Theming readiness: replace all hardcoded `#fff`/`#111` with Ionic CSS vars; replace
+      `fill="outline"` with `fill="clear"` for dark-mode safety
+- [x] DB schema v3: `durationMinutes` on Task (default 30), `settings` table (wakeTime, bedTime,
+      showDeadlineLine); schema version bumped to 2 in DTO
+- [x] Pure helpers: `duration.ts` (±30 min, min 5, format), `free-time.ts` (day free time calc),
+      `marks.ts` (calendar marks + deadline line spans) — all with tests
+- [x] Goal card hero: first/locked goal renders as expandable card with countdown, progress,
+      edit button, expandable detail section; other goals as compact cards
+- [x] Tab back-button: tapping the active tab pops to root (wired via `ionTabButtonClick` +
+      custom `tab-reselect` event on goals/weeks/lists views)
+- [x] Agenda view: new mode in weeks-view (Agenda/Week/Month segment); shows 14-day plan with
+      task durations, status badges, day summaries
+- [x] Calendar marks + deadline progress line: locked goals render a red bottom-border line across
+      days from today → deadline; controlled by `showDeadlineLine` setting
+- [x] Task duration: ±30 min controls on task form (min 5 min), duration badge on day view rows
+      and agenda task items, `formatDuration` helper (e.g. "30m", "1h 30m")
+- [x] Free time: wake/bed time pickers in History → Settings → Schedule; free minutes shown per
+      day in weeks-table cells; over-scheduled days show red "over" text
+
 ## Steals from v1 (backlog)
 
 Ideas recovered from the old `old-notes/` mockups worth folding in. Tagged with the milestone they
@@ -115,7 +135,7 @@ Deliberately NOT copying (violates our invariants):
 
 ## Current status
 
-- **In progress:** none — milestones M0–M6 complete
+- **In progress:** none — milestones M0–M7 complete
 - **Next:** backlog empty (only the deliberately-deferred Capacitor wrap remains)
 
 ## How to resume

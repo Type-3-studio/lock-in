@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import type { Goal, Occurrence, Recurrence, Task, TaskStatus } from '../db/types.js';
+import type { Goal, Occurrence, Recurrence, Settings, Task, TaskStatus } from '../db/types.js';
 import {
   createTask,
   deleteOccurrence,
@@ -8,6 +8,7 @@ import {
   deleteTask,
   liveGoals,
   liveOccurrencesInRange,
+  liveSettings,
   liveTasks,
   setGoalActiveTask,
   setOccurrenceStatus,
@@ -28,13 +29,16 @@ import {
   type ISODate,
 } from '../lib/date-util.js';
 import { dayNumber, longLabel, monthYearLabel, shortLabel } from '../lib/format.js';
-import { buildSchedule, type DateRange, type ScheduledTask } from '../lib/schedule.js';
+import { formatDuration, increaseDuration, decreaseDuration } from '../lib/duration.js';
+import { buildSchedule, type DateRange, type DaySchedule, type ScheduledTask } from '../lib/schedule.js';
+import { buildDeadlineLineSpans } from '../lib/marks.js';
+import { dayFreeTime } from '../lib/free-time.js';
 import '../components/week-grid.js';
 import type { GridDay } from '../components/week-grid.js';
 import '../components/weeks-table.js';
 import type { WeekRowModel } from '../components/weeks-table.js';
 
-type Mode = 'week' | 'month';
+type Mode = 'agenda' | 'week' | 'month';
 
 type Screen =
   | { kind: 'grid' }
@@ -48,6 +52,7 @@ interface TaskForm {
   recurrenceDays: number[];
   recurrenceEnd: string;
   goalId: string;
+  durationMinutes: number;
 }
 
 const WEEKDAYS: Array<[number, string]> = [
@@ -129,7 +134,7 @@ export class WeeksView extends LitElement {
       align-items: center;
       gap: 8px;
       padding: 8px 10px;
-      border: 1px solid var(--ion-color-step-150, #e5e5e5);
+      border: 1px solid var(--ion-color-step-150);
       border-radius: 8px;
     }
 
@@ -162,7 +167,7 @@ export class WeeksView extends LitElement {
     }
 
     .miss-btn {
-      border: 1px solid var(--ion-color-step-200, #d4d4d8);
+      border: 1px solid var(--ion-color-step-200);
       border-radius: 6px;
       background: transparent;
       color: var(--ion-color-medium);
@@ -191,10 +196,10 @@ export class WeeksView extends LitElement {
       font: inherit;
       font-weight: 400;
       padding: 10px 12px;
-      border: 1px solid var(--ion-color-step-200, #d4d4d8);
+      border: 1px solid var(--ion-color-step-200);
       border-radius: 8px;
-      background: var(--ion-background-color, #fff);
-      color: var(--ion-text-color, #111);
+      background: var(--ion-background-color);
+      color: var(--ion-text-color);
     }
 
     .day-checks {
@@ -218,6 +223,33 @@ export class WeeksView extends LitElement {
       margin-top: 4px;
     }
 
+    .duration-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .duration-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--ion-color-medium);
+    }
+
+    .duration-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .duration-value {
+      min-width: 48px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--ion-text-color);
+    }
+
     h2 {
       margin: 0 0 4px;
       font-size: 0.8rem;
@@ -231,11 +263,103 @@ export class WeeksView extends LitElement {
       font-size: 0.85rem;
       color: var(--ion-color-medium);
     }
+
+    /* Agenda view */
+    .agenda {
+      display: grid;
+      gap: 14px;
+      max-width: 640px;
+    }
+
+    .agenda-day {
+      border: 1px solid var(--ion-color-step-150);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .agenda-day.today {
+      border-color: var(--ion-color-primary);
+      box-shadow: inset 0 0 0 1px var(--ion-color-primary);
+    }
+
+    .agenda-day-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--ion-color-step-50);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--ion-text-color);
+      cursor: pointer;
+    }
+
+    .agenda-day.today .agenda-day-head {
+      color: var(--ion-color-primary);
+    }
+
+    .agenda-day-head .free-badge {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--ion-color-medium);
+    }
+
+    .agenda-day-head .free-badge.over {
+      color: var(--ion-color-danger);
+    }
+
+    .agenda-tasks {
+      padding: 6px 10px;
+    }
+
+    .agenda-tasks:empty {
+      display: none;
+    }
+
+    .agenda-task {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 0.85rem;
+    }
+
+    .agenda-task + .agenda-task {
+      border-top: 1px solid var(--ion-color-step-100);
+    }
+
+    .agenda-task .dur {
+      flex: none;
+      font-size: 0.72rem;
+      color: var(--ion-color-medium);
+      min-width: 32px;
+    }
+
+    .agenda-task .title {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .agenda-task.done .title {
+      text-decoration: line-through;
+      color: var(--ion-color-medium);
+    }
+
+    .agenda-task.missed .title {
+      color: var(--ion-color-danger);
+    }
+
+    .agenda-empty {
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      color: var(--ion-color-medium);
+    }
   `;
 
   @state() private goals: Goal[] = [];
   @state() private tasks: Task[] = [];
   @state() private occurrences: Occurrence[] = [];
+  @state() private settings: Settings = { id: 'default', wakeTime: '07:00', bedTime: '23:00', showDeadlineLine: true };
   @state() private mode: Mode = 'week';
   @state() private weekAnchor: ISODate = startOfWeek(todayISO());
   @state() private weekCount = WEEKS_PER_PAGE;
@@ -258,14 +382,25 @@ export class WeeksView extends LitElement {
       liveOccurrencesInRange('0000-01-01', '9999-12-31').subscribe((occurrences) => {
         this.occurrences = occurrences;
       }),
+      liveSettings().subscribe((settings) => {
+        this.settings = settings;
+      }),
     ];
+    this.addEventListener('tab-reselect', this.onTabReselect);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());
     this.subscriptions = [];
+    this.removeEventListener('tab-reselect', this.onTabReselect);
   }
+
+  private onTabReselect = (): void => {
+    if (this.screen.kind !== 'grid') {
+      this.screen = { kind: 'grid' };
+    }
+  };
 
   private emptyForm(date: ISODate): TaskForm {
     return {
@@ -275,11 +410,20 @@ export class WeeksView extends LitElement {
       recurrenceDays: [],
       recurrenceEnd: '',
       goalId: '',
+      durationMinutes: 30,
     };
   }
 
   private get today(): ISODate {
     return todayISO();
+  }
+
+  private get agendaRange(): DateRange {
+    return { start: this.today, end: addDays(this.today, 13) };
+  }
+
+  private get agendaDays(): DaySchedule[] {
+    return buildSchedule(this.tasks, this.occurrences, this.goals, this.agendaRange);
   }
 
   private get monthRange(): DateRange {
@@ -288,9 +432,12 @@ export class WeeksView extends LitElement {
 
   private get monthDays(): GridDay[] {
     const prefix = this.monthStart.slice(0, 7);
-    return buildSchedule(this.tasks, this.occurrences, this.goals, this.monthRange).map((day) => ({
+    const range = this.monthRange;
+    const deadlineSpans = buildDeadlineLineSpans(this.goals, this.today, range, this.settings.showDeadlineLine);
+    return buildSchedule(this.tasks, this.occurrences, this.goals, range).map((day) => ({
       ...day,
       muted: !day.date.startsWith(prefix),
+      deadlineLine: deadlineSpans.has(day.date),
     }));
   }
 
@@ -300,17 +447,25 @@ export class WeeksView extends LitElement {
     for (let index = 0; index < this.weekCount; index += 1) {
       const start = addDays(this.weekAnchor, 7 * index);
       const end = addDays(start, 6);
+      const range = { start, end };
+      const deadlineSpans = buildDeadlineLineSpans(this.goals, today, range, this.settings.showDeadlineLine);
+      const schedule = buildSchedule(this.tasks, this.occurrences, this.goals, range);
       rows.push({
         start,
         weekNumber: isoWeek(start).week,
         label: `${shortLabel(start)} – ${shortLabel(end)}`,
         current: compareDates(start, today) <= 0 && compareDates(end, today) >= 0,
-        days: buildSchedule(this.tasks, this.occurrences, this.goals, { start, end }).map((day) => ({
-          date: day.date,
-          dayNumber: dayNumber(day.date),
-          tasks: day.tasks,
-          today: day.date === today,
-        })),
+        days: schedule.map((day) => {
+          const free = dayFreeTime(day.tasks, this.settings.wakeTime, this.settings.bedTime);
+          return {
+            date: day.date,
+            dayNumber: dayNumber(day.date),
+            tasks: day.tasks,
+            today: day.date === today,
+            deadlineLine: deadlineSpans.has(day.date),
+            freeMinutes: free.freeMinutes,
+          };
+        }),
       });
     }
     return rows;
@@ -337,6 +492,7 @@ export class WeeksView extends LitElement {
     }
     if (screen.kind === 'day') return longLabel(screen.date);
     if (this.mode === 'month') return monthYearLabel(this.monthStart);
+    if (this.mode === 'agenda') return 'Agenda';
     return 'Weeks';
   }
 
@@ -355,7 +511,8 @@ export class WeeksView extends LitElement {
   };
 
   private onModeChange = (event: CustomEvent<{ value?: string }>): void => {
-    this.mode = event.detail.value === 'month' ? 'month' : 'week';
+    const value = event.detail.value;
+    this.mode = value === 'month' ? 'month' : value === 'agenda' ? 'agenda' : 'week';
   };
 
   private loadMore = (): void => {
@@ -377,12 +534,17 @@ export class WeeksView extends LitElement {
       recurrenceDays: task.recurrenceDays ?? [],
       recurrenceEnd: task.recurrenceEnd ?? '',
       goalId: task.goalId ?? '',
+      durationMinutes: task.durationMinutes,
     };
     this.screen = { kind: 'task', taskId, date };
   }
 
   private openDay = (event: CustomEvent<ISODate>): void => {
     this.screen = { kind: 'day', date: event.detail };
+  };
+
+  private openDayDate = (date: ISODate): void => {
+    this.screen = { kind: 'day', date };
   };
 
   private back = (): void => {
@@ -413,6 +575,7 @@ export class WeeksView extends LitElement {
       recurrenceDays: this.form.recurrence === 'custom' ? this.form.recurrenceDays : null,
       recurrenceEnd: this.form.recurrenceEnd === '' ? null : this.form.recurrenceEnd,
       goalId: this.form.goalId === '' ? null : this.form.goalId,
+      durationMinutes: this.form.durationMinutes,
     };
     try {
       if (screen.taskId !== null) await updateTask(screen.taskId, payload);
@@ -493,6 +656,7 @@ export class WeeksView extends LitElement {
         ${!showingBack
           ? html`<div class="subbar">
               <ion-segment value=${this.mode} @ionChange=${this.onModeChange}>
+                <ion-segment-button value="agenda">Agenda</ion-segment-button>
                 <ion-segment-button value="week">Week</ion-segment-button>
                 <ion-segment-button value="month">Month</ion-segment-button>
               </ion-segment>
@@ -511,7 +675,9 @@ export class WeeksView extends LitElement {
       case 'day':
         return this.renderDay(this.screen.date);
       default:
-        return this.mode === 'month' ? this.renderMonth() : this.renderWeeks();
+        if (this.mode === 'month') return this.renderMonth();
+        if (this.mode === 'agenda') return this.renderAgenda();
+        return this.renderWeeks();
     }
   }
 
@@ -535,6 +701,47 @@ export class WeeksView extends LitElement {
         .today=${this.today}
         @day-open=${(event: CustomEvent<ISODate>) => this.openDay(event)}
       ></week-grid>
+    `;
+  }
+
+  private renderAgenda(): TemplateResult {
+    const days = this.agendaDays;
+    return html`
+      <div class="agenda">
+        ${days.map((day) => this.renderAgendaDay(day))}
+      </div>
+    `;
+  }
+
+  private renderAgendaDay(day: DaySchedule): TemplateResult {
+    const isToday = day.date === this.today;
+    const totalDur = day.tasks.reduce((s, t) => s + t.task.durationMinutes, 0);
+    return html`
+      <div class="agenda-day ${isToday ? 'today' : ''}">
+        <div class="agenda-day-head" @click=${() => this.openDayDate(day.date)}>
+          <span>${longLabel(day.date)}</span>
+          <span class="free-badge">${formatDuration(totalDur)} planned</span>
+        </div>
+        ${day.tasks.length > 0
+          ? html`
+              <div class="agenda-tasks">
+                ${day.tasks.map(
+                  (item) => html`
+                    <div class="agenda-task ${item.status}">
+                      <span class="dur">${formatDuration(item.task.durationMinutes)}</span>
+                      <span class="title">
+                        ${item.focused ? '★ ' : ''}${item.task.title}
+                      </span>
+                      <ion-badge color=${item.status === 'done' ? 'success' : item.status === 'missed' ? 'danger' : 'medium'} mode="ios">
+                        ${item.status}
+                      </ion-badge>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+          : html`<div class="agenda-empty">No tasks</div>`}
+      </div>
     `;
   }
 
@@ -567,6 +774,9 @@ export class WeeksView extends LitElement {
                       >
                         ${item.focused ? '★ ' : ''}${item.task.title}
                       </button>
+                      <ion-badge color="medium" mode="ios" class="dur-badge">
+                        ${formatDuration(item.task.durationMinutes)}
+                      </ion-badge>
                       <span class="status-chip">${item.status}</span>
                       <button
                         class="miss-btn"
@@ -617,6 +827,27 @@ export class WeeksView extends LitElement {
               this.setField('anchorDate', (event.target as HTMLInputElement).value)}
           />
         </label>
+        <div class="duration-row">
+          <span class="duration-label">Duration</span>
+          <div class="duration-controls">
+            <ion-button
+              size="small"
+              fill="clear"
+              ?disabled=${this.form.durationMinutes <= 5}
+              @click=${() => this.setField('durationMinutes', decreaseDuration(this.form.durationMinutes))}
+            >
+              −30
+            </ion-button>
+            <span class="duration-value">${formatDuration(this.form.durationMinutes)}</span>
+            <ion-button
+              size="small"
+              fill="clear"
+              @click=${() => this.setField('durationMinutes', increaseDuration(this.form.durationMinutes))}
+            >
+              +30
+            </ion-button>
+          </div>
+        </div>
         <label>
           Repeats
           <select
@@ -679,7 +910,7 @@ export class WeeksView extends LitElement {
                 <h2>Goal focus</h2>
                 <div class="actions">
                   <ion-button
-                    fill=${isFocus ? 'solid' : 'outline'}
+                    fill=${isFocus ? 'solid' : 'clear'}
                     @click=${() => this.setFocus(editingGoal.id, isFocus ? null : editing.id)}
                   >
                     ${isFocus ? '★ Current focus' : 'Set as goal focus'}
@@ -695,21 +926,21 @@ export class WeeksView extends LitElement {
                 <h2>Status for ${longLabel(date)}</h2>
                 <div class="actions">
                   <ion-button
-                    fill=${status === 'pending' ? 'solid' : 'outline'}
+                    fill=${status === 'pending' ? 'solid' : 'clear'}
                     @click=${() => this.setStatus(editing, date, 'pending')}
                   >
                     Pending
                   </ion-button>
                   <ion-button
                     color="success"
-                    fill=${status === 'done' ? 'solid' : 'outline'}
+                    fill=${status === 'done' ? 'solid' : 'clear'}
                     @click=${() => this.setStatus(editing, date, 'done')}
                   >
                     Done
                   </ion-button>
                   <ion-button
                     color="danger"
-                    fill=${status === 'missed' ? 'solid' : 'outline'}
+                    fill=${status === 'missed' ? 'solid' : 'clear'}
                     @click=${() => this.setStatus(editing, date, 'missed')}
                   >
                     Missed

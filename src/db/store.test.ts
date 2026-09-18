@@ -185,7 +185,7 @@ describe('export / import', () => {
     await logHistory({ type: 'goal_locked', refId: goal.id, snapshot: { title: 'Ship v1' } });
 
     const dto = await exportData();
-    expect(dto.schemaVersion).toBe(1);
+    expect(dto.schemaVersion).toBe(2);
     expect(dto.goals).toHaveLength(1);
     expect(dto.tasks).toHaveLength(1);
     expect(dto.notes).toHaveLength(1);

@@ -14,6 +14,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     sourceNoteId: null,
     order: 0,
     createdAt: '2026-09-14T00:00:00.000Z',
+    durationMinutes: 30,
     ...overrides,
   };
 }

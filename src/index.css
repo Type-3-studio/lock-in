@@ -38,3 +38,8 @@ html.crt body::after {
     transparent 3px
   );
 }
+
+/* Theme safety: ensure outline buttons never become invisible in dark mode. */
+ion-button[fill="outline"] {
+  --border-color: var(--ion-color-step-300, currentColor);
+}

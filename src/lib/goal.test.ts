@@ -24,6 +24,7 @@ function makeGoal(overrides: Partial<Goal> = {}): Goal {
     color: null,
     icon: null,
     activeTaskId: null,
+    archived: false,
     ...overrides,
   };
 }

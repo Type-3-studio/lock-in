@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import './views/goals-view.js';
 import './views/weeks-view.js';
 import './views/lists-view.js';
@@ -19,6 +19,7 @@ export class LockInApp extends LitElement {
     }
   `;
 
+  @state() private activeTab: TabName = 'goals';
   private rolloverStarted = false;
 
   connectedCallback(): void {
@@ -29,13 +30,38 @@ export class LockInApp extends LitElement {
         console.error('Missed rollover failed', error);
       });
     }
+    this.addEventListener('ionTabButtonClick', this.onTabClick);
+    this.addEventListener('ionTabsDidChange', this.onTabChange);
   }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.removeEventListener('ionTabButtonClick', this.onTabClick);
+    this.removeEventListener('ionTabsDidChange', this.onTabChange);
+  }
+
+  private onTabChange = (event: Event): void => {
+    const detail = (event as CustomEvent).detail;
+    if (detail?.tab !== undefined && TABS.includes(detail.tab)) {
+      this.activeTab = detail.tab;
+    }
+  };
+
+  private onTabClick = (event: Event): void => {
+    const detail = (event as CustomEvent).detail;
+    const clickedTab = detail?.tab as TabName | undefined;
+    if (clickedTab === undefined) return;
+    // If the user tapped the already-active tab, pop that view to root
+    if (clickedTab === this.activeTab) {
+      this.shadowRoot
+        ?.querySelector(`[tab="${clickedTab}"]`)
+        ?.dispatchEvent(new CustomEvent('tab-reselect', { bubbles: true, composed: true }));
+    }
+  };
 
   protected async firstUpdated(): Promise<void> {
     const requested = new URLSearchParams(window.location.search).get('tab');
     if (requested === null || !TABS.includes(requested as TabName)) return;
-    // The Ionic custom elements may not be upgraded yet when Lit first renders,
-    // so wait until `ion-tabs` is defined before selecting the requested tab.
     await customElements.whenDefined('ion-tabs');
     const tabs = this.renderRoot.querySelector('ion-tabs') as
       | (Element & { select?: (tab: string) => Promise<boolean> })
