@@ -95,6 +95,16 @@ verified (built + tested).
 - [x] Free time: wake/bed time pickers in History → Settings → Schedule; free minutes shown per
       day in weeks-table cells; over-scheduled days show red "over" text
 
+### M8 — Timer + theme consolidation
+- [x] Live goal countdown timer: `DD / HH / MM / SS` on the hero (first/expanded) goal, ticking
+      each second; pure `countdownTo(deadline, nowMs)` in `src/lib/countdown.ts` + tests
+- [x] Full Ionic theme variables defined in `src/index.css` (background/text/step/border + surface
+      vars) for light and dark — fixes invisible table borders and low-contrast buttons caused by
+      the web-component bundle not shipping a theme
+- [x] Violet-only accent; removed accent presets + CRT mode. Appearance is now Light/Dark/System
+      (`src/lib/theme.ts`; persisted as `lock-in:theme`, no-flash inline bootstrap, updates
+      `theme-color`)
+
 ## Steals from v1 (backlog)
 
 Ideas recovered from the old `old-notes/` mockups worth folding in. Tagged with the milestone they
@@ -124,9 +134,9 @@ Nice to have:
       (3-step create wizard + `Goal.reasons`; quick deadline picks; subtasks via goal-linked
       tasks created on the Weeks tab, not in the wizard)
 - [x] "Restart as new goal" — prefill a fresh draft from a terminal goal (M2/M5)
-- [x] Motivational quote + theme/CRT personality (per-goal or global) (M6)
-      (`src/lib/quotes.ts` + `src/lib/theme.ts`; quote on empty/locked goal, accent presets + CRT
-      mode in History → Settings, persisted in `localStorage`)
+- [x] Motivational quote + theme personality (per-goal or global) (M6)
+      (`src/lib/quotes.ts`; quote on empty/locked goal. Superseded accent presets + CRT mode in
+      M8 — appearance is now violet-only with Light/Dark/System, persisted in `localStorage`)
 
 Deliberately NOT copying (violates our invariants):
 - Archive/delete or "edit" of terminal goals — terminal is permanent.
@@ -135,8 +145,9 @@ Deliberately NOT copying (violates our invariants):
 
 ## Current status
 
-- **In progress:** none — milestones M0–M7 complete
-- **Next:** backlog empty (only the deliberately-deferred Capacitor wrap remains)
+- **In progress:** none — milestones M0–M8 complete
+- **Next:** backlog empty (only the deliberately-deferred Capacitor wrap and Cloudflare Pages
+  dashboard wiring remain)
 
 ## How to resume
 

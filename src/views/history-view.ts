@@ -17,14 +17,17 @@ import { todayISO } from '../lib/clock.js';
 import { confirmAction, showAlert } from '../lib/confirm.js';
 import { timestampLabel } from '../lib/format.js';
 import {
-  ACCENTS,
-  applyAccent,
-  applyCrt,
-  loadAccent,
-  loadCrt,
-  saveAccent,
-  saveCrt,
+  applyTheme,
+  loadTheme,
+  saveTheme,
+  type ThemeMode,
 } from '../lib/theme.js';
+
+const THEME_OPTIONS: Array<{ id: ThemeMode; label: string }> = [
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+  { id: 'system', label: 'System' },
+];
 
 const TYPE_LABEL: Record<HistoryType, string> = {
   goal_locked: 'Locked',
@@ -181,8 +184,7 @@ export class HistoryView extends LitElement {
 
   @state() private entries: HistoryEntry[] = [];
   @state() private backups: Backup[] = [];
-  @state() private accent = loadAccent();
-  @state() private crt = loadCrt();
+  @state() private theme: ThemeMode = loadTheme();
   @state() private busy = false;
   @state() private settings: Settings = { id: 'default', wakeTime: '07:00', bedTime: '23:00', showDeadlineLine: true };
 
@@ -297,16 +299,10 @@ export class HistoryView extends LitElement {
     this.renderRoot.querySelector<HTMLInputElement>('input[type="file"]')?.click();
   }
 
-  private setAccent(id: string): void {
-    this.accent = id;
-    saveAccent(id);
-    applyAccent(id);
-  }
-
-  private toggleCrt(): void {
-    this.crt = !this.crt;
-    saveCrt(this.crt);
-    applyCrt(this.crt);
+  private setTheme(mode: ThemeMode): void {
+    this.theme = mode;
+    saveTheme(mode);
+    applyTheme(mode);
   }
 
   private async onTimeChange(field: 'wakeTime' | 'bedTime', value: string): Promise<void> {
@@ -352,19 +348,20 @@ export class HistoryView extends LitElement {
 
           <h2>Appearance</h2>
           <div class="row">
-            ${ACCENTS.map(
-              (accent) => html`
-                <ion-button
-                  size="small"
-                  fill=${this.accent === accent.id ? 'solid' : 'outline'}
-                  @click=${() => this.setAccent(accent.id)}
-                >
-                  ${accent.label}
-                </ion-button>
-              `,
-            )}
-            <ion-toggle .checked=${this.crt} @ionChange=${this.toggleCrt}>CRT mode</ion-toggle>
+            <ion-segment
+              .value=${this.theme}
+              @ionChange=${(e: Event) => this.setTheme((e.target as HTMLIonSegmentElement).value as ThemeMode)}
+            >
+              ${THEME_OPTIONS.map(
+                (option) => html`
+                  <ion-segment-button value=${option.id}>
+                    <ion-label>${option.label}</ion-label>
+                  </ion-segment-button>
+                `,
+              )}
+            </ion-segment>
           </div>
+          <p class="hint">Violet is the app's accent. Light, dark, or follow the system.</p>
 
           <h2>Schedule</h2>
           <div class="row">

@@ -11,6 +11,7 @@ import {
 } from '../db/store.js';
 import { logGoalLocked, logGoalTerminal, type SelfRating } from '../lib/history.js';
 import { isoDateOf, nowIso, todayISO } from '../lib/clock.js';
+import { countdownTo, pad2 } from '../lib/countdown.js';
 import { confirmAction } from '../lib/confirm.js';
 import { addDays, diffDays } from '../lib/date-util.js';
 import { goalProgress } from '../lib/progress.js';
@@ -258,27 +259,46 @@ export class GoalsView extends LitElement {
       font-size: 18px;
     }
 
-    .hero-countdown {
+    /* Live countdown timer (hero goal) */
+    .countdown {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .countdown .unit {
       display: flex;
       align-items: baseline;
-      gap: 6px;
-      margin-top: 8px;
+      gap: 4px;
+      min-width: 0;
     }
 
-    .hero-countdown .number {
-      font-size: 2rem;
-      font-weight: 800;
+    .countdown .num {
+      font-size: clamp(1.6rem, 9vw, 2.6rem);
+      font-weight: 300;
       line-height: 1;
-      color: var(--ion-color-primary);
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      color: var(--ion-text-color);
     }
 
-    .hero-countdown .label {
-      font-size: 0.85rem;
+    .countdown .lbl {
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       color: var(--ion-color-medium);
     }
 
-    .hero-countdown.overdue .number {
+    .countdown.overdue .num {
       color: var(--ion-color-danger);
+    }
+
+    .countdown-note {
+      margin: 8px 0 0;
+      font-size: 0.72rem;
+      color: var(--ion-color-medium);
     }
 
     .hero-meta {
@@ -411,8 +431,10 @@ export class GoalsView extends LitElement {
   @state() private busy = false;
   @state() private expandedGoalId: string | null = null;
   @state() private showArchived = false;
+  @state() private now = Date.now();
 
   private subscriptions: Array<{ unsubscribe(): void }> = [];
+  private ticker: number | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -428,6 +450,7 @@ export class GoalsView extends LitElement {
       }),
     ];
     this.addEventListener('tab-reselect', this.onTabReselect);
+    this.ticker = window.setInterval(this.tick, 1000);
   }
 
   disconnectedCallback(): void {
@@ -435,6 +458,23 @@ export class GoalsView extends LitElement {
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());
     this.subscriptions = [];
     this.removeEventListener('tab-reselect', this.onTabReselect);
+    if (this.ticker !== null) {
+      window.clearInterval(this.ticker);
+      this.ticker = null;
+    }
+  }
+
+  /** Only tick while a countdown is actually on screen. */
+  private tick = (): void => {
+    const goal = this.heroGoal;
+    if (this.screen.kind === 'list' && goal !== undefined && goal.deadline !== null && !isTerminal(goal)) {
+      this.now = Date.now();
+    }
+  };
+
+  private get heroGoal(): Goal | undefined {
+    const active = this.goals.filter((goal) => !goal.archived);
+    return active.find((goal) => goal.status === 'locked') ?? active[0];
   }
 
   private onTabReselect = (): void => {
@@ -675,7 +715,7 @@ export class GoalsView extends LitElement {
     }
     const active = this.goals.filter((g) => !g.archived);
     const archived = this.goals.filter((g) => g.archived);
-    const heroGoal = active.find((g) => g.status === 'locked') ?? active[0];
+    const heroGoal = this.heroGoal;
     const rest = heroGoal !== undefined ? active.filter((g) => g.id !== heroGoal.id) : active;
     return html`
       ${heroGoal !== undefined ? this.renderHeroCard(heroGoal) : nothing}
@@ -699,7 +739,7 @@ export class GoalsView extends LitElement {
   }
 
   private renderHeroCard(goal: Goal): TemplateResult {
-    const left = isTerminal(goal) ? null : timeLeft(goal, todayISO());
+    const left = isTerminal(goal) || goal.deadline === null ? null : timeLeft(goal, todayISO());
     const expanded = this.expandedGoalId === goal.id;
     const progress = this.renderGoalProgress(goal);
     const focusTask =
@@ -726,13 +766,8 @@ export class GoalsView extends LitElement {
             <ion-icon name="create-outline"></ion-icon>
           </button>
         </div>
-        ${left !== null
-          ? html`
-              <div class="hero-countdown ${left.overdue ? 'overdue' : ''}">
-                <span class="number">${left.days}</span>
-                <span class="label">${left.overdue ? 'days overdue' : 'days left'}</span>
-              </div>
-            `
+        ${left !== null && goal.deadline !== null
+          ? this.renderCountdown(goal.deadline, left.overdue)
           : nothing}
         <div class="hero-meta">
           ${meta.map((m) => html`<span>${m}</span>`)}
@@ -745,6 +780,30 @@ export class GoalsView extends LitElement {
         ${progress}
         ${expanded ? this.renderHeroDetail(goal, focusTask) : nothing}
       </div>
+    `;
+  }
+
+  private renderCountdown(deadline: string, overdue: boolean): TemplateResult {
+    const remaining = countdownTo(deadline, this.now);
+    const unit = (value: number, label: string): TemplateResult => html`
+      <div class="unit">
+        <span class="num">${pad2(value)}</span>
+        <span class="lbl">${label}</span>
+      </div>
+    `;
+    const summary = overdue
+      ? `Deadline passed (${deadline})`
+      : `${remaining.days} days, ${remaining.hours} hours and ${remaining.minutes} minutes remaining`;
+    return html`
+      <div class="countdown ${overdue ? 'overdue' : ''}" role="timer" aria-label=${summary}>
+        ${unit(remaining.days, 'Day')}
+        ${unit(remaining.hours, 'Hrs')}
+        ${unit(remaining.minutes, 'Min')}
+        ${unit(remaining.seconds, 'Sec')}
+      </div>
+      <p class="countdown-note">
+        ${overdue ? `Deadline passed — due ${deadline}` : `Locked deadline ${deadline}`}
+      </p>
     `;
   }
 

@@ -13,7 +13,7 @@
       name="description"
       content="Lock In — commit to a goal, lock its deadline, and ship against it. Local-first weekly planning that works offline. No account, no tracking."
     />
-    <meta name="theme-color" content="#6b3fa0" />
+    <meta name="theme-color" content="#6d28d9" />
     <!-- PWA / mobile web app -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -44,6 +44,20 @@
     />
     <meta name="twitter:image" content="/og-image.png" />
     <title>Lock In</title>
+    <script>
+      // Apply the saved/system theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem('lock-in:theme');
+          var dark =
+            stored === 'dark' ||
+            ((stored === null || stored === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
     <link rel="stylesheet" href="./src/index.css" />
     <script type="module" src="/src/app.ts"></script>
   </head>

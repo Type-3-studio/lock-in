@@ -17,8 +17,8 @@ export default defineConfig({
         categories: ['productivity', 'utilities'],
         lang: 'en',
         dir: 'ltr',
-        theme_color: '#6b3fa0',
-        background_color: '#6b3fa0',
+        theme_color: '#6d28d9',
+        background_color: '#6d28d9',
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         launch_handler: {

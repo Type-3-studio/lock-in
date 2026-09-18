@@ -19,27 +19,135 @@ lock-in-app {
   height: 100%;
 }
 
-html.crt,
-html.crt lock-in-app {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+/*
+ * Ionic's web-component bundle only ships the brand color palette. The theme
+ * variables below are what every view relies on (`--ion-background-color`,
+ * `--ion-text-color`, `--ion-color-step-*`), so we define them explicitly.
+ * Violet is the only accent; light/dark are the only appearance options.
+ */
+:root {
+  color-scheme: light;
+
+  --ion-color-primary: #6d28d9;
+  --ion-color-primary-rgb: 109, 40, 217;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #6023bf;
+  --ion-color-primary-tint: #7c3aed;
+
+  --ion-color-secondary: #7c3aed;
+  --ion-color-secondary-rgb: 124, 58, 237;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #6d32d1;
+  --ion-color-secondary-tint: #8a4eef;
+
+  --ion-color-medium: #6b6771;
+  --ion-color-medium-rgb: 107, 103, 113;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5e5a63;
+  --ion-color-medium-tint: #7a767f;
+
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #1b1524;
+  --ion-text-color-rgb: 27, 21, 36;
+  --ion-border-color: #dddcde;
+
+  --ion-color-step-50: #f4f3f4;
+  --ion-color-step-100: #e8e8e9;
+  --ion-color-step-150: #dddcde;
+  --ion-color-step-200: #d1d0d3;
+  --ion-color-step-250: #c6c5c8;
+  --ion-color-step-300: #bbb9bd;
+  --ion-color-step-350: #afadb2;
+  --ion-color-step-400: #a4a1a7;
+  --ion-color-step-450: #98969c;
+  --ion-color-step-500: #8d8a92;
+  --ion-color-step-550: #827e87;
+  --ion-color-step-600: #76737c;
+  --ion-color-step-650: #6b6771;
+  --ion-color-step-700: #5f5b66;
+  --ion-color-step-750: #54505b;
+  --ion-color-step-800: #494450;
+  --ion-color-step-850: #3d3845;
+  --ion-color-step-900: #322c3a;
+  --ion-color-step-950: #26212f;
+
+  --ion-item-background: #ffffff;
+  --ion-toolbar-background: #ffffff;
+  --ion-tab-bar-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-overlay-background-color: #ffffff;
+  --ion-placeholder-color: #98969c;
 }
 
-html.crt body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.08) 0,
-    rgba(0, 0, 0, 0.08) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+:root.dark {
+  color-scheme: dark;
+
+  --ion-color-primary: #a78bfa;
+  --ion-color-primary-rgb: 167, 139, 250;
+  --ion-color-primary-contrast: #1b1524;
+  --ion-color-primary-contrast-rgb: 27, 21, 36;
+  --ion-color-primary-shade: #937bdc;
+  --ion-color-primary-tint: #b09bfb;
+
+  --ion-color-secondary: #a78bfa;
+  --ion-color-secondary-rgb: 167, 139, 250;
+  --ion-color-secondary-contrast: #1b1524;
+  --ion-color-secondary-contrast-rgb: 27, 21, 36;
+  --ion-color-secondary-shade: #937bdc;
+  --ion-color-secondary-tint: #b09bfb;
+
+  --ion-color-medium: #a19daa;
+  --ion-color-medium-rgb: 161, 157, 170;
+  --ion-color-medium-contrast: #1b1524;
+  --ion-color-medium-contrast-rgb: 27, 21, 36;
+  --ion-color-medium-shade: #8e8a96;
+  --ion-color-medium-tint: #aaa6b3;
+
+  --ion-background-color: #161020;
+  --ion-background-color-rgb: 22, 16, 32;
+  --ion-text-color: #ece9f5;
+  --ion-text-color-rgb: 236, 233, 245;
+  --ion-border-color: #363140;
+
+  --ion-color-step-50: #211b2b;
+  --ion-color-step-100: #2b2635;
+  --ion-color-step-150: #363140;
+  --ion-color-step-200: #413b4b;
+  --ion-color-step-250: #4c4655;
+  --ion-color-step-300: #565160;
+  --ion-color-step-350: #615c6b;
+  --ion-color-step-400: #6c6775;
+  --ion-color-step-450: #767280;
+  --ion-color-step-500: #817d8b;
+  --ion-color-step-550: #8c8795;
+  --ion-color-step-600: #9692a0;
+  --ion-color-step-650: #a19daa;
+  --ion-color-step-700: #aca8b5;
+  --ion-color-step-750: #b7b3c0;
+  --ion-color-step-800: #c1beca;
+  --ion-color-step-850: #ccc8d5;
+  --ion-color-step-900: #d7d3e0;
+  --ion-color-step-950: #e1deea;
+
+  --ion-item-background: #1d1728;
+  --ion-toolbar-background: #1d1728;
+  --ion-tab-bar-background: #1d1728;
+  --ion-card-background: #1d1728;
+  --ion-overlay-background-color: #1d1728;
+  --ion-placeholder-color: #767280;
 }
 
-/* Theme safety: ensure outline buttons never become invisible in dark mode. */
-ion-button[fill="outline"] {
+/* Keep native date/time inputs legible in either theme. */
+input[type='date'],
+input[type='time'] {
+  color-scheme: inherit;
+}
+
+/* Outline buttons must stay visible against the current surface. */
+ion-button[fill='outline'] {
   --border-color: var(--ion-color-step-300, currentColor);
 }
